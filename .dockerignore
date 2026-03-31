@@ -1,0 +1,6 @@
+build/
+.git/
+*.db
+*.db-wal
+*.db-shm
+erl_crash.dump
