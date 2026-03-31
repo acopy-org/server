@@ -45,10 +45,11 @@ pub fn decode(data: BitArray) -> Result(WsMsg, String) {
             True -> {
               let assert Ok(payload) = bit_array.slice(rest, 0, length)
               let is_compressed = int_and(flags, flag_zstd) == flag_zstd
-              case is_compressed {
-                True -> Error("Compressed payloads not yet supported")
-                False -> decode_payload(msg_type, payload)
+              let decompressed = case is_compressed {
+                True -> zstd_decompress(payload)
+                False -> payload
               }
+              decode_payload(msg_type, decompressed)
             }
           }
         }
@@ -160,9 +161,25 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
 }
 
 fn maybe_compress(payload: BitArray) -> #(Int, BitArray) {
-  // Compression not yet supported — send uncompressed
-  #(0, payload)
+  let size = bit_array.byte_size(payload)
+  case size > 1024 {
+    True -> {
+      let compressed = zstd_compress(payload)
+      let compressed_size = bit_array.byte_size(compressed)
+      case compressed_size < size {
+        True -> #(flag_zstd, compressed)
+        False -> #(0, payload)
+      }
+    }
+    False -> #(0, payload)
+  }
 }
+
+@external(erlang, "zstd_ffi", "compress")
+fn zstd_compress(data: BitArray) -> BitArray
+
+@external(erlang, "zstd_ffi", "decompress")
+fn zstd_decompress(data: BitArray) -> BitArray
 
 @external(erlang, "erlang", "band")
 fn int_and(a: Int, b: Int) -> Int

@@ -11,6 +11,8 @@ RUN gleam export erlang-shipment
 # --- Runtime ---
 FROM erlang:28-alpine
 
+RUN apk add --no-cache zstd
+
 COPY --from=build /app/build/erlang-shipment /app
 
 WORKDIR /app
