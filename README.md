@@ -6,15 +6,31 @@ Handles user account management over HTTP and real-time clipboard synchronizatio
 
 ## Architecture
 
-```
-Client A                        Server                         Client B
-─────────                       ──────                         ─────────
-  POST /api/users/register ──────►  creates account
-  POST /api/users/login ─────────►  returns JWT
-  WS /ws ────────────────────────►  persistent connection
-  Auth (0x01, jwt) ──────────────►  verifies, registers conn
-  ClipboardPush (0x02) ──────────►  stores, broadcasts ──────►  ClipboardBroadcast (0x03)
-  Ping (0x06) ───────────────────►  ◄─── Pong (0x07)
+```mermaid
+sequenceDiagram
+    participant A as Client A
+    participant S as Server
+    participant B as Client B
+
+    A->>S: POST /api/users/register
+    S-->>A: 201 user created
+    A->>S: POST /api/users/login
+    S-->>A: 200 {token, user}
+
+    A->>S: WS /ws
+    A->>S: Auth (0x01, jwt)
+    S-->>A: Ack (0x04)
+
+    B->>S: WS /ws
+    B->>S: Auth (0x01, jwt)
+    S-->>B: Ack (0x04)
+
+    A->>S: ClipboardPush (0x02)
+    S-->>A: Ack (0x04)
+    S->>B: ClipboardBroadcast (0x03)
+
+    A->>S: Ping (0x06)
+    S-->>A: Pong (0x07)
 ```
 
 ## HTTP API
