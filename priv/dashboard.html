@@ -21,6 +21,8 @@
   <script>
     var token = localStorage.getItem('acopy_token');
     var user = null;
+    var entries = [];
+    var ws = null;
 
     try {
       user = JSON.parse(localStorage.getItem('acopy_user') || 'null');
@@ -28,12 +30,6 @@
 
     if (!token || !user) {
       window.location.href = '/';
-    }
-
-    function renderNav(u) {
-      document.getElementById('nav').innerHTML =
-        '<span class="user">' + escHtml(u.email) + '</span>' +
-        ' | <button id="logout-btn" onclick="logout()">logout</button>';
     }
 
     function escHtml(s) {
@@ -49,7 +45,7 @@
 
     function formatTime(ts) {
       if (!ts) return '';
-      var d = new Date(ts * 1000);
+      var d = new Date(ts);
       if (isNaN(d.getTime())) return ts;
       var now = new Date();
       var diff = Math.floor((now - d) / 1000);
@@ -59,13 +55,6 @@
       return d.toISOString().slice(0, 10);
     }
 
-    function truncate(s, len) {
-      len = len || 120;
-      if (s.length > len) return s.slice(0, len) + '...';
-      return s;
-    }
-
-    // content is base16 encoded hex string from the server
     function hexToText(hex) {
       if (!hex || !hex.length) return '(empty)';
       try {
@@ -73,63 +62,301 @@
         for (var i = 0; i < hex.length; i += 2) {
           bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
         }
-        var decoder = new TextDecoder('utf-8');
-        return truncate(decoder.decode(bytes));
+        return new TextDecoder('utf-8').decode(bytes);
       } catch(e) {
         return '(binary, ' + Math.floor(hex.length / 2) + ' bytes)';
       }
     }
 
-    function getContentSize(hex) {
-      if (!hex) return 0;
-      return Math.floor(hex.length / 2);
+    function truncate(s, len) {
+      len = len || 120;
+      return s.length > len ? s.slice(0, len) + '...' : s;
     }
 
-    function renderDashboard(entries) {
+    function renderNav(u) {
+      document.getElementById('nav').innerHTML =
+        '<span class="user">' + escHtml(u.email) + '</span>' +
+        ' | <button id="logout-btn" onclick="logout()">logout</button>';
+    }
+
+    function renderEntries() {
       var html = '<p class="dashboard-email">' + escHtml(user.email) + '</p>';
       html += '<p class="dashboard-subtitle">clipboard history</p>';
+      html += '<div id="ws-status" class="ws-status"></div>';
       html += '<hr class="separator">';
       if (!entries || entries.length === 0) {
         html += '<p class="no-entries">no clipboard entries yet.</p>';
       } else {
         for (var i = 0; i < entries.length; i++) {
           var e = entries[i];
+          var text = hexToText(e.content);
+          var size = e.content ? Math.floor(e.content.length / 2) : 0;
+          var time = e.created_at || '';
           html += '<div class="entry">';
           html += '<div class="top-row">';
           html += '<span class="device">' + escHtml(e.device_name || '') + '</span>';
-          html += '<span class="time">' + formatTime(e.created_at) + '</span>';
-          html += '<span class="size">' + formatSize(getContentSize(e.content)) + '</span>';
+          html += '<span class="time">' + formatTime(time) + '</span>';
+          html += '<span class="size">' + formatSize(size) + '</span>';
           html += '</div>';
-          if (e.content) {
-            html += '<div class="preview">' + escHtml(hexToText(e.content)) + '</div>';
-          }
+          html += '<div class="preview">' + escHtml(truncate(text)) + '</div>';
           html += '</div>';
         }
       }
       document.getElementById('content').innerHTML = html;
+      updateWsStatus();
     }
+
+    function updateWsStatus() {
+      var el = document.getElementById('ws-status');
+      if (!el) return;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        el.innerHTML = '<span class="ws-connected">// connected — streaming live</span>';
+      } else {
+        el.innerHTML = '<span class="ws-disconnected">// reconnecting...</span>';
+      }
+    }
+
+    // --- WebSocket binary protocol ---
+
+    // Minimal msgpack decoder for the subset we need
+    function decodeMsgpack(buf, offset) {
+      var dv = new DataView(buf);
+      var b = dv.getUint8(offset);
+
+      // fixmap
+      if ((b & 0xf0) === 0x80) {
+        var n = b & 0x0f;
+        var pos = offset + 1;
+        var map = {};
+        for (var i = 0; i < n; i++) {
+          var k = decodeMsgpack(buf, pos);
+          pos = k.offset;
+          var v = decodeMsgpack(buf, pos);
+          pos = v.offset;
+          map[k.value] = v.value;
+        }
+        return { value: map, offset: pos };
+      }
+      // fixstr
+      if ((b & 0xe0) === 0xa0) {
+        var len = b & 0x1f;
+        var s = new TextDecoder().decode(new Uint8Array(buf, offset + 1, len));
+        return { value: s, offset: offset + 1 + len };
+      }
+      // str 8
+      if (b === 0xd9) {
+        var len = dv.getUint8(offset + 1);
+        var s = new TextDecoder().decode(new Uint8Array(buf, offset + 2, len));
+        return { value: s, offset: offset + 2 + len };
+      }
+      // str 16
+      if (b === 0xda) {
+        var len = dv.getUint16(offset + 1);
+        var s = new TextDecoder().decode(new Uint8Array(buf, offset + 3, len));
+        return { value: s, offset: offset + 3 + len };
+      }
+      // bin 8
+      if (b === 0xc4) {
+        var len = dv.getUint8(offset + 1);
+        var bytes = new Uint8Array(buf, offset + 2, len);
+        return { value: bytes, offset: offset + 2 + len };
+      }
+      // bin 16
+      if (b === 0xc5) {
+        var len = dv.getUint16(offset + 1);
+        var bytes = new Uint8Array(buf, offset + 3, len);
+        return { value: bytes, offset: offset + 3 + len };
+      }
+      // bin 32
+      if (b === 0xc6) {
+        var len = dv.getUint32(offset + 1);
+        var bytes = new Uint8Array(buf, offset + 5, len);
+        return { value: bytes, offset: offset + 5 + len };
+      }
+      // positive fixint
+      if ((b & 0x80) === 0) {
+        return { value: b, offset: offset + 1 };
+      }
+      // uint 8
+      if (b === 0xcc) {
+        return { value: dv.getUint8(offset + 1), offset: offset + 2 };
+      }
+      // uint 16
+      if (b === 0xcd) {
+        return { value: dv.getUint16(offset + 1), offset: offset + 3 };
+      }
+      // uint 32
+      if (b === 0xce) {
+        return { value: dv.getUint32(offset + 1), offset: offset + 5 };
+      }
+      // uint 64 (read as Number, ok for timestamps)
+      if (b === 0xcf) {
+        var hi = dv.getUint32(offset + 1);
+        var lo = dv.getUint32(offset + 5);
+        return { value: hi * 0x100000000 + lo, offset: offset + 9 };
+      }
+      // int 32
+      if (b === 0xd2) {
+        return { value: dv.getInt32(offset + 1), offset: offset + 5 };
+      }
+      // true/false
+      if (b === 0xc3) return { value: true, offset: offset + 1 };
+      if (b === 0xc2) return { value: false, offset: offset + 1 };
+      // nil
+      if (b === 0xc0) return { value: null, offset: offset + 1 };
+      // negative fixint
+      if ((b & 0xe0) === 0xe0) {
+        return { value: b - 256, offset: offset + 1 };
+      }
+      // fallback
+      return { value: null, offset: offset + 1 };
+    }
+
+    function encodeMsgpack(obj) {
+      if (typeof obj === 'string') {
+        var encoded = new TextEncoder().encode(obj);
+        if (encoded.length < 32) {
+          var out = new Uint8Array(1 + encoded.length);
+          out[0] = 0xa0 | encoded.length;
+          out.set(encoded, 1);
+          return out;
+        }
+        if (encoded.length < 256) {
+          var out = new Uint8Array(2 + encoded.length);
+          out[0] = 0xd9;
+          out[1] = encoded.length;
+          out.set(encoded, 2);
+          return out;
+        }
+        var out = new Uint8Array(3 + encoded.length);
+        out[0] = 0xda;
+        out[1] = (encoded.length >> 8) & 0xff;
+        out[2] = encoded.length & 0xff;
+        out.set(encoded, 3);
+        return out;
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        var keys = Object.keys(obj);
+        var parts = [new Uint8Array([0x80 | keys.length])];
+        for (var i = 0; i < keys.length; i++) {
+          parts.push(encodeMsgpack(keys[i]));
+          parts.push(encodeMsgpack(obj[keys[i]]));
+        }
+        var total = 0;
+        for (var i = 0; i < parts.length; i++) total += parts[i].length;
+        var result = new Uint8Array(total);
+        var off = 0;
+        for (var i = 0; i < parts.length; i++) {
+          result.set(parts[i], off);
+          off += parts[i].length;
+        }
+        return result;
+      }
+      return new Uint8Array([0xc0]);
+    }
+
+    function buildFrame(msgType, payload) {
+      var len = payload.length;
+      var frame = new Uint8Array(7 + len);
+      frame[0] = 0x01; // protocol version
+      frame[1] = msgType;
+      frame[2] = 0x00; // flags
+      frame[3] = (len >> 24) & 0xff;
+      frame[4] = (len >> 16) & 0xff;
+      frame[5] = (len >> 8) & 0xff;
+      frame[6] = len & 0xff;
+      frame.set(payload, 7);
+      return frame;
+    }
+
+    function bytesToHex(bytes) {
+      var hex = '';
+      for (var i = 0; i < bytes.length; i++) {
+        hex += ('0' + bytes[i].toString(16)).slice(-2);
+      }
+      return hex.toUpperCase();
+    }
+
+    function connectWs() {
+      var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(proto + '//' + location.host + '/ws');
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = function() {
+        // send auth message (0x01)
+        var payload = encodeMsgpack({ token: token });
+        ws.send(buildFrame(0x01, payload));
+        updateWsStatus();
+      };
+
+      ws.onmessage = function(ev) {
+        var buf = ev.data;
+        if (!(buf instanceof ArrayBuffer) || buf.byteLength < 7) return;
+        var dv = new DataView(buf);
+        var msgType = dv.getUint8(1);
+        var flags = dv.getUint8(2);
+        var length = dv.getUint32(3);
+
+        if (msgType === 0x03) { // ClipboardBroadcast
+          var payloadBuf = buf.slice(7, 7 + length);
+          var decoded = decodeMsgpack(payloadBuf, 0);
+          var map = decoded.value;
+          var content = map.content;
+          var device = map.device || '';
+          var ts = map.ts || 0;
+
+          var hexContent = (content instanceof Uint8Array) ? bytesToHex(content) : '';
+          var created = ts ? new Date(ts * 1000).toISOString() : new Date().toISOString();
+
+          entries.unshift({
+            content: hexContent,
+            device_name: device,
+            created_at: created
+          });
+          if (entries.length > 50) entries = entries.slice(0, 50);
+          renderEntries();
+        }
+      };
+
+      ws.onclose = function() {
+        updateWsStatus();
+        setTimeout(connectWs, 3000);
+      };
+
+      ws.onerror = function() {
+        updateWsStatus();
+      };
+    }
+
+    // --- Ping keepalive ---
+    setInterval(function() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(buildFrame(0x06, new Uint8Array(0)));
+      }
+    }, 25000);
 
     function loadDashboard() {
       renderNav(user);
       fetch('/api/users/me', {
         headers: { 'Authorization': 'Bearer ' + token }
       }).then(function(r) {
-        if (!r.ok) {
-          logout();
-          return;
-        }
+        if (!r.ok) { logout(); return; }
         r.json().then(function(u) {
           user = u;
           localStorage.setItem('acopy_user', JSON.stringify(u));
           renderNav(u);
-          renderDashboard(u.clipboard_entries || []);
+          entries = u.clipboard_entries || [];
+          renderEntries();
+          connectWs();
         });
       }).catch(function() {
-        document.getElementById('content').innerHTML = '<p class="no-entries">could not load clipboard history.</p>';
+        document.getElementById('content').innerHTML =
+          '<p class="no-entries">could not load clipboard history.</p>';
       });
     }
 
     function logout() {
+      if (ws) ws.close();
       localStorage.removeItem('acopy_token');
       localStorage.removeItem('acopy_user');
       window.location.href = '/';

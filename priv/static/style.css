@@ -272,3 +272,16 @@ a:hover {
   letter-spacing: 1px;
   margin-top: 4px;
 }
+
+.ws-status {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+.ws-connected {
+  color: #3dba6e;
+}
+
+.ws-disconnected {
+  color: #e05050;
+}
