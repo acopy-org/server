@@ -37,7 +37,10 @@ fn mime_type(path: List(String)) -> String {
         True -> "text/css"
         False -> case string.ends_with(filename, ".js") {
           True -> "application/javascript"
-          False -> "application/octet-stream"
+          False -> case string.ends_with(filename, ".png") {
+            True -> "image/png"
+            False -> "application/octet-stream"
+          }
         }
       }
     }
