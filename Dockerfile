@@ -6,6 +6,7 @@ RUN gleam deps download
 
 COPY src/ /app/src/
 COPY test/ /app/test/
+COPY priv/ /app/priv/
 RUN gleam export erlang-shipment
 
 # --- Runtime ---
