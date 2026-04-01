@@ -14,6 +14,8 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
   case wisp.path_segments(req) {
     ["api", "users", ..rest] -> user_routes.handle_request(req, ctx, rest)
     ["static", ..path] -> static_file(req, path)
+    ["install.sh"] -> install_script(req)
+    ["install.ps1"] -> install_script_ps1(req)
     ["index.html"] -> index_page(req)
     ["dashboard.html"] -> dashboard_page(req)
     ["c", id] -> serve_clipboard(req, ctx, id)
@@ -76,6 +78,20 @@ fn index_page(req: wisp.Request) -> wisp.Response {
 fn dashboard_page(req: wisp.Request) -> wisp.Response {
   case req.method {
     http.Get -> read_file("priv/dashboard.html", "text/html")
+    _ -> wisp.method_not_allowed(allowed: [http.Get])
+  }
+}
+
+fn install_script(req: wisp.Request) -> wisp.Response {
+  case req.method {
+    http.Get -> read_file("priv/static/install.sh", "text/plain")
+    _ -> wisp.method_not_allowed(allowed: [http.Get])
+  }
+}
+
+fn install_script_ps1(req: wisp.Request) -> wisp.Response {
+  case req.method {
+    http.Get -> read_file("priv/static/install.ps1", "text/plain")
     _ -> wisp.method_not_allowed(allowed: [http.Get])
   }
 }
