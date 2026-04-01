@@ -5,7 +5,7 @@ import gleam/otp/actor
 
 /// Message sent to a WebSocket connection for outbound delivery
 pub type WsOutbound {
-  OutboundBroadcast(content: BitArray, device: String, ts: Int)
+  OutboundBroadcast(content: BitArray, device: String, content_type: String, ts: Int)
 }
 
 /// Messages handled by the registry actor
@@ -21,6 +21,7 @@ pub type RegistryMessage {
     exclude_conn_id: String,
     content: BitArray,
     device: String,
+    content_type: String,
     ts: Int,
   )
 }
@@ -72,11 +73,12 @@ pub fn broadcast(
   exclude_conn_id: String,
   content: BitArray,
   device: String,
+  content_type: String,
   ts: Int,
 ) -> Nil {
   actor.send(
     registry,
-    Broadcast(user_id:, exclude_conn_id:, content:, device:, ts:),
+    Broadcast(user_id:, exclude_conn_id:, content:, device:, content_type:, ts:),
   )
 }
 
@@ -116,7 +118,7 @@ fn handle_message(
       }
     }
 
-    Broadcast(user_id:, exclude_conn_id:, content:, device:, ts:) -> {
+    Broadcast(user_id:, exclude_conn_id:, content:, device:, content_type:, ts:) -> {
       case dict.get(state.user_conns, user_id) {
         Ok(conn_ids) -> {
           list.each(conn_ids, fn(conn_id) {
@@ -124,7 +126,7 @@ fn handle_message(
               True ->
                 case dict.get(state.connections, conn_id) {
                   Ok(#(_, subject)) ->
-                    process.send(subject, OutboundBroadcast(content:, device:, ts:))
+                    process.send(subject, OutboundBroadcast(content:, device:, content_type:, ts:))
                   Error(_) -> Nil
                 }
               False -> Nil

@@ -20,6 +20,10 @@ pub fn migrate(db: pog.Connection) -> Result(Nil, pog.QueryError) {
     )",
     db,
   )
+  use _ <- exec(
+    "ALTER TABLE clipboard_entries ADD COLUMN IF NOT EXISTS content_type TEXT NOT NULL DEFAULT 'text/plain'",
+    db,
+  )
   Ok(Nil)
 }
 

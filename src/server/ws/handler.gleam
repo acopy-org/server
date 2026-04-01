@@ -88,8 +88,8 @@ fn handle_binary(
       mist.continue(state)
     }
     Ok(protocol.AuthMsg(token:)) -> handle_auth(state, token, conn)
-    Ok(protocol.ClipboardPushMsg(content:, device:)) ->
-      handle_clipboard_push(state, content, device, conn)
+    Ok(protocol.ClipboardPushMsg(content:, device:, content_type:)) ->
+      handle_clipboard_push(state, content, device, content_type, conn)
     Ok(protocol.PingMsg) -> {
       let _ = mist.send_binary_frame(conn, protocol.encode(protocol.PongMsg))
       mist.continue(state)
@@ -129,6 +129,7 @@ fn handle_clipboard_push(
   state: WsState,
   content: BitArray,
   device: String,
+  content_type: String,
   conn: mist.WebsocketConnection,
 ) -> mist.Next(WsState, WsOutbound) {
   case state.user_id {
@@ -144,7 +145,7 @@ fn handle_clipboard_push(
         }
         False -> {
           let _ =
-            clipboard_service.save_entry(state.ctx.db, user_id, content, device)
+            clipboard_service.save_entry(state.ctx.db, user_id, content, device, content_type)
           let ts = birl.now() |> birl.to_unix
           registry.broadcast(
             state.ctx.registry,
@@ -152,6 +153,7 @@ fn handle_clipboard_push(
             state.conn_id,
             content,
             device,
+            content_type,
             ts,
           )
           send_ack(conn)
@@ -168,9 +170,9 @@ fn handle_outbound(
   conn: mist.WebsocketConnection,
 ) -> mist.Next(WsState, WsOutbound) {
   case outbound {
-    registry.OutboundBroadcast(content:, device:, ts:) -> {
+    registry.OutboundBroadcast(content:, device:, content_type:, ts:) -> {
       let frame =
-        protocol.encode(protocol.ClipboardBroadcastMsg(content:, device:, ts:))
+        protocol.encode(protocol.ClipboardBroadcastMsg(content:, device:, content_type:, ts:))
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }

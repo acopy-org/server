@@ -102,6 +102,7 @@ fn clipboard_entry_to_json(entry: clipboard_service.ClipboardEntry) -> json.Json
   json.object([
     #("id", json.string(entry.id)),
     #("content", json.string(bit_array.base16_encode(entry.content))),
+    #("content_type", json.string(entry.content_type)),
     #("device_name", json.string(entry.device_name)),
     #("created_at", json.string(entry.created_at)),
   ])

@@ -55,17 +55,34 @@
       return d.toISOString().slice(0, 10);
     }
 
+    function hexToBytes(hex) {
+      var bytes = new Uint8Array(hex.length / 2);
+      for (var i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+      }
+      return bytes;
+    }
+
     function hexToText(hex) {
       if (!hex || !hex.length) return '(empty)';
       try {
-        var bytes = new Uint8Array(hex.length / 2);
-        for (var i = 0; i < hex.length; i += 2) {
-          bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-        }
-        return new TextDecoder('utf-8').decode(bytes);
+        return new TextDecoder('utf-8').decode(hexToBytes(hex));
       } catch(e) {
         return '(binary, ' + Math.floor(hex.length / 2) + ' bytes)';
       }
+    }
+
+    function isImageType(ct) {
+      return ct && ct.indexOf('image/') === 0;
+    }
+
+    function hexToDataUrl(hex, contentType) {
+      var bytes = hexToBytes(hex);
+      var binary = '';
+      for (var i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return 'data:' + contentType + ';base64,' + btoa(binary);
     }
 
     function truncate(s, len) {
@@ -98,7 +115,12 @@
           html += '<span class="time">' + formatTime(time) + '</span>';
           html += '<span class="size">' + formatSize(size) + '</span>';
           html += '</div>';
-          html += '<div class="preview">' + escHtml(truncate(text)) + '</div>';
+          var ct = e.content_type || 'text/plain';
+          if (isImageType(ct) && e.content) {
+            html += '<div class="preview-image"><img src="' + hexToDataUrl(e.content, ct) + '" alt="clipboard image"></div>';
+          } else {
+            html += '<div class="preview">' + escHtml(truncate(text)) + '</div>';
+          }
           html += '</div>';
         }
       }
@@ -306,10 +328,12 @@
           var ts = map.ts || 0;
 
           var hexContent = (content instanceof Uint8Array) ? bytesToHex(content) : '';
+          var contentType = map.content_type || 'text/plain';
           var created = ts ? new Date(ts * 1000).toISOString() : new Date().toISOString();
 
           entries.unshift({
             content: hexContent,
+            content_type: contentType,
             device_name: device,
             created_at: created
           });
