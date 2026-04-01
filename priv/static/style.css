@@ -160,6 +160,13 @@ a:hover {
   margin-bottom: 8px;
 }
 
+.hero-title {
+  font-size: 24px;
+  color: #3dba6e;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
 .hero-tagline {
   font-size: 20px;
   color: #e0e0d8;
@@ -196,6 +203,18 @@ a:hover {
 
 .info-block .info-text a {
   color: #3dba6e;
+}
+
+.code-block {
+  background: #0a0a0c;
+  border: 1px solid #222;
+  color: #c8c8c0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  padding: 8px 12px;
+  margin: 6px 0 12px 0;
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .separator {

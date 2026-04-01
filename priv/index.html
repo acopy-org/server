@@ -7,13 +7,9 @@
   <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 <body>
-  <div id="header">
-    <span class="title">acopy</span>
-    <span class="nav" id="nav"></span>
-  </div>
-
   <div id="main">
     <div id="hero">
+      <p class="hero-title">acopy</p>
       <p class="hero-tagline">copy on one device, paste on another.</p>
       <p class="hero-desc">
         acopy syncs your clipboard across all your devices in real time.
@@ -23,13 +19,21 @@
 
       <div class="info-grid">
         <div class="info-block">
+          <p class="info-label">// install</p>
+          <p class="info-text">macOS / Linux:</p>
+          <pre class="code-block">curl -fsSL https://acopy.org/install.sh | sh</pre>
+          <p class="info-text">Windows (PowerShell):</p>
+          <pre class="code-block">irm https://acopy.org/install.ps1 | iex</pre>
+          <p class="info-text">then run setup:</p>
+          <pre class="code-block">acopy setup</pre>
+        </div>
+        <div class="info-block">
           <p class="info-label">// how it works</p>
           <p class="info-text">
-            install the acopy client on each device. sign in once.
-            after that, every copy you make is pushed over a persistent
-            websocket connection to this server, which broadcasts it
-            to your other devices. clipboard data is encrypted in transit
-            and stored only for history.
+            the client runs as a background service. it monitors your
+            clipboard and syncs changes to all your other devices over a
+            persistent websocket connection. clipboard data is encrypted
+            in transit and stored only for history.
           </p>
         </div>
         <div class="info-block">
