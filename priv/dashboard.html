@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>acopy</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="header">
+    <span class="title">acopy</span>
+    <span class="nav" id="nav"></span>
+  </div>
+
+  <div id="main">
+    <div id="content">
+      <p class="page-title">// loading...</p>
+    </div>
+  </div>
+
+  <script>
+    var token = localStorage.getItem('acopy_token');
+    var user = null;
+
+    try {
+      user = JSON.parse(localStorage.getItem('acopy_user') || 'null');
+    } catch(e) {}
+
+    if (!token || !user) {
+      window.location.href = '/';
+    }
+
+    function renderNav(u) {
+      document.getElementById('nav').innerHTML =
+        '<span class="user">' + escHtml(u.email) + '</span>' +
+        ' | <button id="logout-btn" onclick="logout()">logout</button>';
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return '0B';
+      if (bytes < 1024) return bytes + 'B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      var d = new Date(ts * 1000);
+      if (isNaN(d.getTime())) return ts;
+      var now = new Date();
+      var diff = Math.floor((now - d) / 1000);
+      if (diff < 60) return diff + 's ago';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return d.toISOString().slice(0, 10);
+    }
+
+    function truncate(s, len) {
+      len = len || 120;
+      if (s.length > len) return s.slice(0, len) + '...';
+      return s;
+    }
+
+    // content is base16 encoded hex string from the server
+    function hexToText(hex) {
+      if (!hex || !hex.length) return '(empty)';
+      try {
+        var bytes = new Uint8Array(hex.length / 2);
+        for (var i = 0; i < hex.length; i += 2) {
+          bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+        }
+        var decoder = new TextDecoder('utf-8');
+        return truncate(decoder.decode(bytes));
+      } catch(e) {
+        return '(binary, ' + Math.floor(hex.length / 2) + ' bytes)';
+      }
+    }
+
+    function getContentSize(hex) {
+      if (!hex) return 0;
+      return Math.floor(hex.length / 2);
+    }
+
+    function renderDashboard(entries) {
+      var html = '<p class="dashboard-email">' + escHtml(user.email) + '</p>';
+      html += '<p class="dashboard-subtitle">clipboard history</p>';
+      html += '<hr class="separator">';
+      if (!entries || entries.length === 0) {
+        html += '<p class="no-entries">no clipboard entries yet.</p>';
+      } else {
+        for (var i = 0; i < entries.length; i++) {
+          var e = entries[i];
+          html += '<div class="entry">';
+          html += '<div class="top-row">';
+          html += '<span class="device">' + escHtml(e.device_name || '') + '</span>';
+          html += '<span class="time">' + formatTime(e.created_at) + '</span>';
+          html += '<span class="size">' + formatSize(getContentSize(e.content)) + '</span>';
+          html += '</div>';
+          if (e.content) {
+            html += '<div class="preview">' + escHtml(hexToText(e.content)) + '</div>';
+          }
+          html += '</div>';
+        }
+      }
+      document.getElementById('content').innerHTML = html;
+    }
+
+    function loadDashboard() {
+      renderNav(user);
+      fetch('/api/users/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function(r) {
+        if (!r.ok) {
+          logout();
+          return;
+        }
+        r.json().then(function(u) {
+          user = u;
+          localStorage.setItem('acopy_user', JSON.stringify(u));
+          renderNav(u);
+          renderDashboard(u.clipboard_entries || []);
+        });
+      }).catch(function() {
+        document.getElementById('content').innerHTML = '<p class="no-entries">could not load clipboard history.</p>';
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem('acopy_token');
+      localStorage.removeItem('acopy_user');
+      window.location.href = '/';
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

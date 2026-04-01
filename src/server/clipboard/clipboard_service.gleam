@@ -1,6 +1,36 @@
 import birl
+import gleam/dynamic/decode
 import pog
 import youid/uuid
+
+pub type ClipboardEntry {
+  ClipboardEntry(id: String, content: BitArray, device_name: String, created_at: String)
+}
+
+fn clipboard_entry_decoder() -> decode.Decoder(ClipboardEntry) {
+  use id <- decode.field(0, decode.string)
+  use content <- decode.field(1, decode.bit_array)
+  use device_name <- decode.field(2, decode.string)
+  use created_at <- decode.field(3, decode.string)
+  decode.success(ClipboardEntry(id:, content:, device_name:, created_at:))
+}
+
+pub fn get_entries_by_user(
+  db: pog.Connection,
+  user_id: String,
+) -> Result(List(ClipboardEntry), pog.QueryError) {
+  case
+    pog.query(
+      "SELECT id, content, device_name, created_at FROM clipboard_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50",
+    )
+    |> pog.parameter(pog.text(user_id))
+    |> pog.returning(clipboard_entry_decoder())
+    |> pog.execute(on: db)
+  {
+    Ok(pog.Returned(_, entries)) -> Ok(entries)
+    Error(e) -> Error(e)
+  }
+}
 
 pub fn save_entry(
   db: pog.Connection,
