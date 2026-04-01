@@ -156,6 +156,48 @@ a:hover {
   color: #666;
 }
 
+#hero {
+  margin-bottom: 8px;
+}
+
+.hero-tagline {
+  font-size: 20px;
+  color: #e0e0d8;
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
+}
+
+.hero-desc {
+  font-size: 13px;
+  color: #888;
+  max-width: 480px;
+  margin-bottom: 28px;
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-block .info-label {
+  font-size: 11px;
+  color: #3dba6e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.info-block .info-text {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.7;
+}
+
+.info-block .info-text a {
+  color: #3dba6e;
+}
+
 .separator {
   border: none;
   border-top: 1px solid #1e1e22;

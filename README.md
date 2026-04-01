@@ -199,3 +199,7 @@ The container listens on port 80 by default and binds to `0.0.0.0`. The ~90 MB i
 | `DATABASE_URL` | `postgres://postgres:postgres@localhost:5432/acopy` | PostgreSQL connection URI |
 | `JWT_SECRET`   | `dev-secret-change-in-production`            | HMAC signing key       |
 | `PORT`         | `8000`                                       | HTTP/WS listen port    |
+
+## License
+
+MIT
