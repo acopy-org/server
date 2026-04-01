@@ -30,4 +30,5 @@ else
     sudo mv "/tmp/${BIN}" "${INSTALL_DIR}/${BIN}"
 fi
 
-echo "installed. run: acopy setup"
+echo "installed. running setup..."
+acopy setup
