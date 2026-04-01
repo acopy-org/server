@@ -25,8 +25,17 @@
           <pre class="code-block">curl -fsSL https://acopy.org/install.sh | sh</pre>
           <p class="info-text">Windows (PowerShell):</p>
           <pre class="code-block">irm https://acopy.org/install.ps1 | iex</pre>
-          <p class="info-text">then run setup:</p>
+          <p class="info-text">
+            installs to:<br>
+            macOS: <code>/usr/local/bin/acopy</code><br>
+            Linux: <code>~/.local/bin/acopy</code><br>
+            Windows: <code>%LOCALAPPDATA%\acopy</code>
+          </p>
+          <p class="info-text">then run:</p>
           <pre class="code-block">acopy setup</pre>
+          <p class="info-text">
+            (restart your terminal first, then verify with <code>acopy --version</code>)
+          </p>
         </div>
         <div class="info-block">
           <p class="info-label">// how it works</p>

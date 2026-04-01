@@ -168,27 +168,48 @@ All pure Gleam/Erlang — no C compilation required:
 
 ## Running
 
-### Local
+### Prerequisites
 
-Requires Gleam >= 1.4.0, Erlang/OTP >= 27, and a PostgreSQL database.
+- **Gleam** >= 1.4.0
+- **Erlang/OTP** >= 27
+- **PostgreSQL** >= 12
 
-```sh
-export DATABASE_URL="postgres://user:pass@localhost:5432/acopy"
-export JWT_SECRET="your-secret-here"
-export PORT=8000
-gleam run
-```
+### Local Development
+
+1. **Set up the database:**
+   ```sh
+   createdb acopy
+   ```
+
+2. **Configure environment variables:**
+   ```sh
+   export DATABASE_URL="postgres://user:pass@localhost:5432/acopy"
+   export JWT_SECRET="your-secret-here-change-in-production"
+   export PORT=8000
+   ```
+
+3. **Run the server:**
+   ```sh
+   gleam run
+   ```
+
+The server will start on `http://localhost:8000` and automatically create the required database tables on first run.
 
 ### Docker
 
-```sh
-docker build -t acopy-server .
-docker run -d \
-  -e DATABASE_URL="postgres://user:pass@db-host:5432/acopy" \
-  -e JWT_SECRET="your-secret-here" \
-  -p 80:80 \
-  acopy-server
-```
+1. **Build the image:**
+   ```sh
+   docker build -t acopy-server .
+   ```
+
+2. **Run the container:**
+   ```sh
+   docker run -d \
+     -e DATABASE_URL="postgres://user:pass@db-host:5432/acopy" \
+     -e JWT_SECRET="your-secret-here" \
+     -p 80:80 \
+     acopy-server
+   ```
 
 The container listens on port 80 by default and binds to `0.0.0.0`. The ~90 MB image contains only the Erlang runtime and compiled BEAM bytecode — no compiler toolchain.
 
