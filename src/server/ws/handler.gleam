@@ -86,8 +86,10 @@ fn handle_binary(
   data: BitArray,
   conn: mist.WebsocketConnection,
 ) -> mist.Next(WsState, WsOutbound) {
+  let _ = erlang_format("handle_binary: data_size=" <> string.inspect(bit_array.byte_size(data)) <> "\n")
   case protocol.decode(data) {
     Error(reason) -> {
+      let _ = erlang_format("decode_error: " <> reason <> "\n")
       send_error(conn, 400, reason)
       mist.continue(state)
     }
@@ -98,7 +100,8 @@ fn handle_binary(
       let _ = mist.send_binary_frame(conn, protocol.encode(protocol.PongMsg))
       mist.continue(state)
     }
-    Ok(_) -> {
+    Ok(other) -> {
+      let _ = erlang_format("unexpected_msg: " <> string.inspect(other) <> "\n")
       send_error(conn, 400, "Unexpected message type")
       mist.continue(state)
     }
