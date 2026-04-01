@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $base = "https://github.com/acopy-org/client/releases/latest/download"
 $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
-$url = "$base/dl/windows-$arch/acopy.exe"
+$url = "$base/acopy-windows-$arch.exe"
 $dir = "$env:LOCALAPPDATA\acopy"
 $bin = "$dir\acopy.exe"
 

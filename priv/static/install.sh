@@ -13,7 +13,7 @@ case "$ARCH" in
     *) echo "unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-URL="${BASE_URL}/dl/${OS}-${ARCH}/${BIN}"
+URL="${BASE_URL}/${BIN}-${OS}-${ARCH}"
 
 echo "downloading acopy for ${OS}/${ARCH}..."
 curl -fsSL "$URL" -o "/tmp/${BIN}"
