@@ -59,12 +59,19 @@ pub fn decode(data: BitArray) -> Result(WsMsg, String) {
   }
 }
 
-/// Encode a protocol message into a binary WebSocket frame.
+/// Encode a protocol message into a binary WebSocket frame (with compression).
 pub fn encode(msg: WsMsg) -> BitArray {
   let #(msg_type, payload) = encode_payload(msg)
   let #(flags, final_payload) = maybe_compress(payload)
   let length = bit_array.byte_size(final_payload)
   <<protocol_version, msg_type, flags, length:size(32), final_payload:bits>>
+}
+
+/// Encode without compression (for browser clients that don't support zstd).
+pub fn encode_no_compress(msg: WsMsg) -> BitArray {
+  let #(msg_type, payload) = encode_payload(msg)
+  let length = bit_array.byte_size(payload)
+  <<protocol_version, msg_type, 0, length:size(32), payload:bits>>
 }
 
 fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {

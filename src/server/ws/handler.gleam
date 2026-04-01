@@ -177,7 +177,7 @@ fn handle_outbound(
   case outbound {
     registry.OutboundBroadcast(id:, content:, device:, content_type:, ts:) -> {
       let frame =
-        protocol.encode(protocol.ClipboardBroadcastMsg(id:, content:, device:, content_type:, ts:))
+        protocol.encode_no_compress(protocol.ClipboardBroadcastMsg(id:, content:, device:, content_type:, ts:))
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }
