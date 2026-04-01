@@ -14,6 +14,7 @@ FROM erlang:28-alpine
 RUN apk add --no-cache zstd
 
 COPY --from=build /app/build/erlang-shipment /app
+COPY priv/ /app/priv/
 
 WORKDIR /app
 
