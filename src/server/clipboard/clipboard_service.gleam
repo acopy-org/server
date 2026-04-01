@@ -32,6 +32,22 @@ pub fn get_entries_by_user(
   }
 }
 
+fn delete_old_entries(
+  db: pog.Connection,
+  user_id: String,
+) -> Result(Nil, pog.QueryError) {
+  case
+    pog.query(
+      "DELETE FROM clipboard_entries WHERE user_id = $1 AND id NOT IN (SELECT id FROM clipboard_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50)",
+    )
+    |> pog.parameter(pog.text(user_id))
+    |> pog.execute(on: db)
+  {
+    Ok(_) -> Ok(Nil)
+    Error(e) -> Error(e)
+  }
+}
+
 pub fn save_entry(
   db: pog.Connection,
   user_id: String,
@@ -51,7 +67,10 @@ pub fn save_entry(
     |> pog.parameter(pog.text(created_at))
     |> pog.execute(on: db)
   {
-    Ok(_) -> Ok(Nil)
+    Ok(_) -> {
+      let _ = delete_old_entries(db, user_id)
+      Ok(Nil)
+    }
     Error(e) -> Error(e)
   }
 }
