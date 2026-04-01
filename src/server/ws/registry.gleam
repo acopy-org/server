@@ -5,7 +5,7 @@ import gleam/otp/actor
 
 /// Message sent to a WebSocket connection for outbound delivery
 pub type WsOutbound {
-  OutboundBroadcast(content: BitArray, device: String, content_type: String, ts: Int)
+  OutboundBroadcast(id: String, content: BitArray, device: String, content_type: String, ts: Int)
 }
 
 /// Messages handled by the registry actor
@@ -19,6 +19,7 @@ pub type RegistryMessage {
   Broadcast(
     user_id: String,
     exclude_conn_id: String,
+    id: String,
     content: BitArray,
     device: String,
     content_type: String,
@@ -71,6 +72,7 @@ pub fn broadcast(
   registry: Subject(RegistryMessage),
   user_id: String,
   exclude_conn_id: String,
+  id: String,
   content: BitArray,
   device: String,
   content_type: String,
@@ -78,7 +80,7 @@ pub fn broadcast(
 ) -> Nil {
   actor.send(
     registry,
-    Broadcast(user_id:, exclude_conn_id:, content:, device:, content_type:, ts:),
+    Broadcast(user_id:, exclude_conn_id:, id:, content:, device:, content_type:, ts:),
   )
 }
 
@@ -118,7 +120,7 @@ fn handle_message(
       }
     }
 
-    Broadcast(user_id:, exclude_conn_id:, content:, device:, content_type:, ts:) -> {
+    Broadcast(user_id:, exclude_conn_id:, id:, content:, device:, content_type:, ts:) -> {
       case dict.get(state.user_conns, user_id) {
         Ok(conn_ids) -> {
           list.each(conn_ids, fn(conn_id) {
@@ -126,7 +128,7 @@ fn handle_message(
               True ->
                 case dict.get(state.connections, conn_id) {
                   Ok(#(_, subject)) ->
-                    process.send(subject, OutboundBroadcast(content:, device:, content_type:, ts:))
+                    process.send(subject, OutboundBroadcast(id:, content:, device:, content_type:, ts:))
                   Error(_) -> Nil
                 }
               False -> Nil

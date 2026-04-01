@@ -24,7 +24,7 @@ const flag_zstd = 1
 pub type WsMsg {
   AuthMsg(token: String)
   ClipboardPushMsg(content: BitArray, device: String, content_type: String)
-  ClipboardBroadcastMsg(content: BitArray, device: String, content_type: String, ts: Int)
+  ClipboardBroadcastMsg(id: String, content: BitArray, device: String, content_type: String, ts: Int)
   AckMsg
   ErrorMsg(code: Int, msg: String)
   PingMsg
@@ -99,18 +99,19 @@ fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {
       case msgpack.decode(payload) {
         Ok(#(msgpack.Map(entries), _)) ->
           case
+            msgpack.get_string(entries, "id"),
             msgpack.get_bin(entries, "content"),
             msgpack.get_string(entries, "device"),
             msgpack.get_int(entries, "ts")
           {
-            Ok(content), Ok(device), Ok(ts) -> {
+            Ok(id), Ok(content), Ok(device), Ok(ts) -> {
               let content_type = case msgpack.get_string(entries, "content_type") {
                 Ok(ct) -> ct
                 Error(_) -> "text/plain"
               }
-              Ok(ClipboardBroadcastMsg(content:, device:, content_type:, ts:))
+              Ok(ClipboardBroadcastMsg(id:, content:, device:, content_type:, ts:))
             }
-            _, _, _ -> Error("Missing fields in ClipboardBroadcast")
+            _, _, _, _ -> Error("Missing fields in ClipboardBroadcast")
           }
         _ -> Error("Invalid ClipboardBroadcast payload")
       }
@@ -148,9 +149,10 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
         #(msgpack.Str("content_type"), msgpack.Str(content_type)),
       ])),
     )
-    ClipboardBroadcastMsg(content:, device:, content_type:, ts:) -> #(
+    ClipboardBroadcastMsg(id:, content:, device:, content_type:, ts:) -> #(
       msg_clipboard_broadcast,
       msgpack.encode(msgpack.Map([
+        #(msgpack.Str("id"), msgpack.Str(id)),
         #(msgpack.Str("content"), msgpack.Bin(content)),
         #(msgpack.Str("device"), msgpack.Str(device)),
         #(msgpack.Str("content_type"), msgpack.Str(content_type)),

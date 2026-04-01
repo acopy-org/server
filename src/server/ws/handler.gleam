@@ -144,13 +144,18 @@ fn handle_clipboard_push(
           mist.continue(state)
         }
         False -> {
-          let _ =
+          let id = case
             clipboard_service.save_entry(state.ctx.db, user_id, content, device, content_type)
+          {
+            Ok(saved_id) -> saved_id
+            Error(_) -> ""
+          }
           let ts = birl.now() |> birl.to_unix
           registry.broadcast(
             state.ctx.registry,
             user_id,
             state.conn_id,
+            id,
             content,
             device,
             content_type,
@@ -170,9 +175,9 @@ fn handle_outbound(
   conn: mist.WebsocketConnection,
 ) -> mist.Next(WsState, WsOutbound) {
   case outbound {
-    registry.OutboundBroadcast(content:, device:, content_type:, ts:) -> {
+    registry.OutboundBroadcast(id:, content:, device:, content_type:, ts:) -> {
       let frame =
-        protocol.encode(protocol.ClipboardBroadcastMsg(content:, device:, content_type:, ts:))
+        protocol.encode(protocol.ClipboardBroadcastMsg(id:, content:, device:, content_type:, ts:))
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }

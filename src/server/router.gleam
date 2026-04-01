@@ -1,7 +1,9 @@
+import gleam/bytes_tree
 import gleam/http
 import gleam/http/response
 import gleam/list
 import gleam/string
+import server/clipboard/clipboard_service
 import server/user/user_routes
 import server/web.{type Context}
 import wisp
@@ -14,8 +16,24 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
     ["static", ..path] -> static_file(req, path)
     ["index.html"] -> index_page(req)
     ["dashboard.html"] -> dashboard_page(req)
+    ["c", id] -> serve_clipboard(req, ctx, id)
     [] -> wisp.redirect("/index.html")
     _ -> wisp.not_found()
+  }
+}
+
+fn serve_clipboard(req: wisp.Request, ctx: Context, id: String) -> wisp.Response {
+  case req.method {
+    http.Get -> {
+      case clipboard_service.get_entry_by_id(ctx.db, id) {
+        Ok(entry) ->
+          wisp.response(200)
+          |> response.set_header("content-type", entry.content_type)
+          |> wisp.set_body(wisp.Bytes(bytes_tree.from_bit_array(entry.content)))
+        Error(_) -> wisp.not_found()
+      }
+    }
+    _ -> wisp.method_not_allowed(allowed: [http.Get])
   }
 }
 

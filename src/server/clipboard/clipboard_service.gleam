@@ -49,13 +49,30 @@ fn delete_old_entries(
   }
 }
 
+pub fn get_entry_by_id(
+  db: pog.Connection,
+  id: String,
+) -> Result(ClipboardEntry, Nil) {
+  case
+    pog.query(
+      "SELECT id, content, device_name, content_type, created_at FROM clipboard_entries WHERE id = $1",
+    )
+    |> pog.parameter(pog.text(id))
+    |> pog.returning(clipboard_entry_decoder())
+    |> pog.execute(on: db)
+  {
+    Ok(pog.Returned(_, [entry, ..])) -> Ok(entry)
+    _ -> Error(Nil)
+  }
+}
+
 pub fn save_entry(
   db: pog.Connection,
   user_id: String,
   content: BitArray,
   device_name: String,
   content_type: String,
-) -> Result(Nil, pog.QueryError) {
+) -> Result(String, pog.QueryError) {
   let id = uuid.v4_string()
   let created_at = birl.now() |> birl.to_iso8601
   case
@@ -72,7 +89,7 @@ pub fn save_entry(
   {
     Ok(_) -> {
       let _ = delete_old_entries(db, user_id)
-      Ok(Nil)
+      Ok(id)
     }
     Error(e) -> Error(e)
   }
