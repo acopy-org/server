@@ -4,6 +4,7 @@ import gleam/erlang/process.{type Subject}
 import gleam/http/request
 import gleam/http/response
 import gleam/option.{type Option, None, Some}
+import gleam/string
 import mist
 import server/auth/auth
 import server/clipboard/clipboard_service
@@ -11,6 +12,9 @@ import server/web.{type Context}
 import server/ws/protocol
 import server/ws/registry.{type WsOutbound}
 import youid/uuid
+
+@external(erlang, "io", "format")
+fn erlang_format(msg: String) -> Nil
 
 /// Per-connection WebSocket state
 pub type WsState {
@@ -144,11 +148,19 @@ fn handle_clipboard_push(
           mist.continue(state)
         }
         False -> {
+          let content_size = bit_array.byte_size(content)
+          let _ = erlang_format("clipboard_push: " <> user_id <> " " <> device <> " " <> content_type <> " " <> string.inspect(content_size) <> "b\n")
           let id = case
             clipboard_service.save_entry(state.ctx.db, user_id, content, device, content_type)
           {
-            Ok(saved_id) -> saved_id
-            Error(_) -> ""
+            Ok(saved_id) -> {
+              let _ = erlang_format("saved: " <> saved_id <> "\n")
+              saved_id
+            }
+            Error(e) -> {
+              let _ = erlang_format("save_error: " <> string.inspect(e) <> "\n")
+              ""
+            }
           }
           let ts = birl.now() |> birl.to_unix
           registry.broadcast(
