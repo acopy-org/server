@@ -3,6 +3,7 @@ import gleam/http
 import gleam/http/response
 import gleam/list
 import gleam/string
+import server/clipboard/clipboard_routes
 import server/clipboard/clipboard_service
 import server/user/user_routes
 import server/web.{type Context}
@@ -12,6 +13,7 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
   use <- web.middleware(req, ctx)
 
   case wisp.path_segments(req) {
+    ["api", "clipboard", ..rest] -> clipboard_routes.handle_request(req, ctx, rest)
     ["api", "users", ..rest] -> user_routes.handle_request(req, ctx, rest)
     ["static", ..path] -> static_file(req, path)
     ["install.sh"] -> install_script(req)
