@@ -18,13 +18,11 @@ pub fn generate_token(user_id: String, secret: String) -> String {
     |> base64_url_encode
 
   let now = birl.now() |> birl.to_unix
-  let exp = now + 86_400
 
   let payload =
     json.object([
       #("sub", json.string(user_id)),
       #("iat", json.int(now)),
-      #("exp", json.int(exp)),
     ])
     |> json.to_string
     |> bit_array.from_string
@@ -65,12 +63,7 @@ pub fn verify_token(token: String, secret: String) -> Result(String, Nil) {
             bit_array.to_string(payload_bytes) |> result.replace_error(Nil),
           )
           use claims <- result.try(parse_claims(payload_str))
-          // Check expiration
-          let now = birl.now() |> birl.to_unix
-          case claims.exp > now {
-            True -> Ok(claims.sub)
-            False -> Error(Nil)
-          }
+          Ok(claims.sub)
         }
         False -> Error(Nil)
       }
@@ -120,13 +113,12 @@ pub fn require_auth(
 // --- Internal helpers ---
 
 type Claims {
-  Claims(sub: String, exp: Int)
+  Claims(sub: String)
 }
 
 fn claims_decoder() -> decode.Decoder(Claims) {
   use sub <- decode.field("sub", decode.string)
-  use exp <- decode.field("exp", decode.int)
-  decode.success(Claims(sub:, exp:))
+  decode.success(Claims(sub:))
 }
 
 fn parse_claims(payload_str: String) -> Result(Claims, Nil) {
