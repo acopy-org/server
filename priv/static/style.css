@@ -213,34 +213,36 @@ a:hover {
 }
 
 .code-copy {
-  position: relative;
+  display: flex;
+  align-items: stretch;
   margin: 6px 0 12px 0;
+  background: #0a0a0c;
+  border: 1px solid #222;
 }
 
 .code-copy .code-block {
   margin: 0;
-  padding-right: 36px;
+  border: none;
+  flex: 1;
+  min-width: 0;
 }
 
 .copy-btn {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
   background: none;
   border: none;
+  border-left: 1px solid #222;
   color: #444;
   cursor: pointer;
-  padding: 4px;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .copy-btn:hover {
   color: #888;
-  background: #1a1a1e;
+  background: #111;
 }
 
 .code-block {
