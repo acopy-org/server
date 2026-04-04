@@ -92,7 +92,7 @@
       var html = '<div class="dashboard-header">';
       html += '<div><p class="dashboard-email">' + escHtml(user.email) + '</p>';
       html += '<p class="dashboard-subtitle">clipboard history</p></div>';
-      html += '<button id="logout-btn" onclick="logout()">logout</button>';
+      html += '<div class="dashboard-actions"><a href="/">home</a> <button id="logout-btn" onclick="logout()">logout</button></div>';
       html += '</div>';
       html += '<div id="ws-status" class="ws-status"></div>';
       html += '<hr class="separator">';

@@ -119,12 +119,7 @@
       fetch('/api/users/me', {
         headers: { 'Authorization': 'Bearer ' + token }
       }).then(function(r) {
-        if (r.ok) {
-          r.json().then(function(user) {
-            localStorage.setItem('acopy_user', JSON.stringify(user));
-            window.location.href = '/dashboard';
-          });
-        } else {
+        if (!r.ok) {
           localStorage.removeItem('acopy_token');
           localStorage.removeItem('acopy_user');
         }
