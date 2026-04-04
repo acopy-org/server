@@ -30,14 +30,12 @@ if [ "$OS" = "darwin" ]; then
     xattr -d com.apple.quarantine "/tmp/${BIN}" 2>/dev/null || true
 fi
 
-# Reattach stdin to terminal so sudo and setup prompts work when piped via curl | sh
-exec < /dev/tty
-
 echo "installing to ${INSTALL_DIR}/${BIN}..."
 if [ -w "$INSTALL_DIR" ]; then
     mv "/tmp/${BIN}" "${INSTALL_DIR}/${BIN}"
 else
-    sudo mv "/tmp/${BIN}" "${INSTALL_DIR}/${BIN}"
+    # Redirect from /dev/tty so sudo can prompt for password when piped via curl | sh
+    sudo mv "/tmp/${BIN}" "${INSTALL_DIR}/${BIN}" < /dev/tty
 fi
 
 # Ensure ~/.local/bin is in PATH for Linux
@@ -54,4 +52,4 @@ fi
 
 echo "installed $("${INSTALL_DIR}/${BIN}" version)."
 echo ""
-"${INSTALL_DIR}/${BIN}" setup
+"${INSTALL_DIR}/${BIN}" setup < /dev/tty
