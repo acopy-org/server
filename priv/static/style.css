@@ -521,6 +521,24 @@ a:hover {
 
 .device-name {
   color: #e0e0dc;
+  cursor: pointer;
+}
+
+.device-name:hover {
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
+
+.rename-input {
+  background: #1a1a18;
+  color: #e0e0dc;
+  border: 1px solid #555;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 1px 4px;
+  width: 140px;
+  outline: none;
 }
 
 .device-meta {

@@ -133,6 +133,44 @@ pub fn update_device_config(
   }
 }
 
+pub fn rename_device(
+  db: pog.Connection,
+  user_id: String,
+  device_id: String,
+  new_name: String,
+) -> Result(#(String, Device), DeviceError) {
+  // Get old device to capture old name
+  case
+    pog.query(
+      "SELECT id, user_id, device_name, image_compression, created_at, last_seen_at FROM devices WHERE id = $1 AND user_id = $2",
+    )
+    |> pog.parameter(pog.text(device_id))
+    |> pog.parameter(pog.text(user_id))
+    |> pog.returning(device_decoder())
+    |> pog.execute(on: db)
+  {
+    Ok(pog.Returned(_, [old_device, ..])) -> {
+      let old_name = old_device.device_name
+      case
+        pog.query(
+          "UPDATE devices SET device_name = $1 WHERE id = $2 AND user_id = $3 RETURNING id, user_id, device_name, image_compression, created_at, last_seen_at",
+        )
+        |> pog.parameter(pog.text(new_name))
+        |> pog.parameter(pog.text(device_id))
+        |> pog.parameter(pog.text(user_id))
+        |> pog.returning(device_decoder())
+        |> pog.execute(on: db)
+      {
+        Ok(pog.Returned(_, [device, ..])) -> Ok(#(old_name, device))
+        Ok(_) -> Error(DeviceNotFound)
+        Error(e) -> Error(DeviceDbError(e))
+      }
+    }
+    Ok(_) -> Error(DeviceNotFound)
+    Error(e) -> Error(DeviceDbError(e))
+  }
+}
+
 pub fn delete_device(
   db: pog.Connection,
   user_id: String,

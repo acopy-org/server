@@ -22,11 +22,13 @@ const msg_copy_intent = 0x08
 
 const msg_copy_cancel = 0x09
 
+const msg_device_renamed = 0x0A
+
 // Flag bits
 const flag_zstd = 1
 
 pub type WsMsg {
-  AuthMsg(token: String)
+  AuthMsg(token: String, device: String)
   ClipboardPushMsg(content: BitArray, device: String, content_type: String)
   ClipboardBroadcastMsg(id: String, content: BitArray, device: String, content_type: String, ts: Int)
   AckMsg
@@ -35,6 +37,7 @@ pub type WsMsg {
   PongMsg
   CopyIntentMsg(device: String)
   CopyCancelMsg
+  DeviceRenamedMsg(device_id: String, old_name: String, new_name: String)
   AckWithProcessingMsg(processing_ms: Int)
 }
 
@@ -87,7 +90,13 @@ fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {
       case msgpack.decode(payload) {
         Ok(#(msgpack.Map(entries), _)) ->
           case msgpack.get_string(entries, "token") {
-            Ok(token) -> Ok(AuthMsg(token:))
+            Ok(token) -> {
+              let device = case msgpack.get_string(entries, "device") {
+                Ok(d) -> d
+                Error(_) -> ""
+              }
+              Ok(AuthMsg(token:, device:))
+            }
             Error(_) -> Error("Missing 'token' in Auth message")
           }
         _ -> Error("Invalid Auth payload")
@@ -154,16 +163,32 @@ fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {
       }
     }
     t if t == msg_copy_cancel -> Ok(CopyCancelMsg)
+    t if t == msg_device_renamed -> {
+      case msgpack.decode(payload) {
+        Ok(#(msgpack.Map(entries), _)) ->
+          case
+            msgpack.get_string(entries, "device_id"),
+            msgpack.get_string(entries, "old_name"),
+            msgpack.get_string(entries, "new_name")
+          {
+            Ok(device_id), Ok(old_name), Ok(new_name) ->
+              Ok(DeviceRenamedMsg(device_id:, old_name:, new_name:))
+            _, _, _ -> Error("Missing fields in DeviceRenamed")
+          }
+        _ -> Error("Invalid DeviceRenamed payload")
+      }
+    }
     _ -> Error("Unknown message type")
   }
 }
 
 fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
   case msg {
-    AuthMsg(token:) -> #(
+    AuthMsg(token:, device:) -> #(
       msg_auth,
       msgpack.encode(msgpack.Map([
         #(msgpack.Str("token"), msgpack.Str(token)),
+        #(msgpack.Str("device"), msgpack.Str(device)),
       ])),
     )
     ClipboardPushMsg(content:, device:, content_type:) -> #(
@@ -211,6 +236,14 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
       ])),
     )
     CopyCancelMsg -> #(msg_copy_cancel, <<>>)
+    DeviceRenamedMsg(device_id:, old_name:, new_name:) -> #(
+      msg_device_renamed,
+      msgpack.encode(msgpack.Map([
+        #(msgpack.Str("device_id"), msgpack.Str(device_id)),
+        #(msgpack.Str("old_name"), msgpack.Str(old_name)),
+        #(msgpack.Str("new_name"), msgpack.Str(new_name)),
+      ])),
+    )
   }
 }
 

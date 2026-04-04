@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>acopy</title>
-  <link rel="stylesheet" href="/static/style.css?v=6">
+  <link rel="stylesheet" href="/static/style.css?v=7">
   <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 <body>
@@ -113,7 +113,7 @@
         for (var i = 0; i < devices.length; i++) {
           var d = devices[i];
           html += '<div class="device-item">';
-          html += '<span class="device-name">' + escHtml(d.device_name) + '</span>';
+          html += '<span class="device-name" onclick="startRename(\'' + d.id + '\', this)" title="click to rename">' + escHtml(d.device_name) + '</span>';
           html += '<span class="device-meta">';
           if (plan === 'pro') {
             html += '<span class="device-config">';
@@ -381,6 +381,22 @@
           renderEntries();
         }
 
+        if (msgType === 0x0A) { // DeviceRenamed
+          var payloadBuf = buf.slice(7, 7 + length);
+          var decoded = decodeMsgpack(payloadBuf, 0);
+          var map = decoded.value;
+          var deviceId = map.device_id || '';
+          var oldName = map.old_name || '';
+          var newName = map.new_name || '';
+          for (var i = 0; i < devices.length; i++) {
+            if (devices[i].id === deviceId) {
+              devices[i].device_name = newName;
+              break;
+            }
+          }
+          renderEntries();
+        }
+
         if (msgType === 0x03) { // ClipboardBroadcast
           var payloadBuf = buf.slice(7, 7 + length);
           var decoded = decodeMsgpack(payloadBuf, 0);
@@ -501,6 +517,50 @@
             }
             renderEntries();
           });
+        }
+      });
+    }
+
+    function startRename(deviceId, el) {
+      var current = el.textContent;
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.value = current;
+      input.className = 'rename-input';
+      input.onblur = function() { finishRename(deviceId, input, current); };
+      input.onkeydown = function(e) {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') { input.value = current; input.blur(); }
+      };
+      el.textContent = '';
+      el.appendChild(input);
+      input.focus();
+      input.select();
+    }
+
+    function finishRename(deviceId, input, oldName) {
+      var newName = input.value.trim();
+      if (!newName || newName === oldName) {
+        renderEntries();
+        return;
+      }
+      fetch('/api/devices/' + deviceId, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ device_name: newName })
+      }).then(function(r) {
+        if (r.ok) {
+          r.json().then(function(d) {
+            for (var i = 0; i < devices.length; i++) {
+              if (devices[i].id === d.id) { devices[i] = d; break; }
+            }
+            renderEntries();
+          });
+        } else {
+          renderEntries();
         }
       });
     }

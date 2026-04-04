@@ -104,7 +104,7 @@ fn handle_binary(
       send_error(conn, 400, reason)
       mist.continue(state)
     }
-    Ok(protocol.AuthMsg(token:)) -> handle_auth(state, token, conn)
+    Ok(protocol.AuthMsg(token:, device:)) -> handle_auth(state, token, device, conn)
     Ok(protocol.ClipboardPushMsg(content:, device:, content_type:)) ->
       handle_clipboard_push(state, content, device, content_type, conn)
     Ok(protocol.CopyIntentMsg(device:)) ->
@@ -126,6 +126,7 @@ fn handle_binary(
 fn handle_auth(
   state: WsState,
   token: String,
+  device: String,
   conn: mist.WebsocketConnection,
 ) -> mist.Next(WsState, WsOutbound) {
   case auth.verify_token(token, state.ctx.jwt_secret) {
@@ -136,6 +137,15 @@ fn handle_auth(
         state.conn_id,
         state.subject,
       )
+      // Register the device in DB on auth so it shows up in dashboard immediately
+      case device != "" {
+        True -> {
+          let polar_enabled = state.ctx.polar_webhook_secret != ""
+          let _ = device_service.ensure_device(state.ctx.db, user_id, device, polar_enabled)
+          Nil
+        }
+        False -> Nil
+      }
       let new_state = WsState(..state, user_id: Some(user_id))
       send_ack(conn)
       mist.continue(new_state)
@@ -298,6 +308,11 @@ fn handle_outbound(
     }
     registry.OutboundCopyCancel(device: _) -> {
       let frame = protocol.encode_no_compress(protocol.CopyCancelMsg)
+      let _ = mist.send_binary_frame(conn, frame)
+      mist.continue(state)
+    }
+    registry.OutboundDeviceRenamed(device_id:, old_name:, new_name:) -> {
+      let frame = protocol.encode_no_compress(protocol.DeviceRenamedMsg(device_id:, old_name:, new_name:))
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }

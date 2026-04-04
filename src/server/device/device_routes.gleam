@@ -1,9 +1,11 @@
 import gleam/dynamic/decode
 import gleam/http
 import gleam/json
+import gleam/option.{None, Some}
 import server/auth/auth
 import server/device/device_service
 import server/web.{type Context}
+import server/ws/registry
 import wisp
 
 pub fn handle_request(
@@ -47,40 +49,83 @@ fn update_device(
   use json_body <- wisp.require_json(req)
 
   let decoder = {
-    use image_compression <- decode.field("image_compression", decode.int)
-    decode.success(image_compression)
+    use device_name <- decode.optional_field(
+      "device_name",
+      None,
+      decode.string |> decode.map(Some),
+    )
+    use image_compression <- decode.optional_field(
+      "image_compression",
+      None,
+      decode.int |> decode.map(Some),
+    )
+    decode.success(#(device_name, image_compression))
   }
 
   case decode.run(json_body, decoder) {
-    Ok(image_compression) -> {
-      let polar_enabled = ctx.polar_webhook_secret != ""
-      case
-        device_service.update_device_config(
-          ctx.db,
-          user_id,
-          device_id,
-          image_compression,
-          polar_enabled,
-        )
-      {
-        Ok(device) ->
-          device_to_json(device)
-          |> json.to_string
-          |> wisp.json_response(200)
-        Error(device_service.PlanRequired) ->
-          json.object([
-            #("error", json.string("Pro plan required for device configuration")),
-          ])
-          |> json.to_string
-          |> wisp.json_response(403)
+    Ok(#(Some(new_name), maybe_compression)) ->
+      case device_service.rename_device(ctx.db, user_id, device_id, new_name) {
+        Ok(#(old_name, device)) -> {
+          registry.broadcast_device_renamed(
+            ctx.registry,
+            user_id,
+            device_id,
+            old_name,
+            new_name,
+          )
+          // Also update compression if provided
+          case maybe_compression {
+            Some(ic) -> update_compression(ctx, user_id, device_id, ic)
+            None ->
+              device_to_json(device)
+              |> json.to_string
+              |> wisp.json_response(200)
+          }
+        }
         Error(device_service.DeviceNotFound) ->
           json.object([#("error", json.string("Device not found"))])
           |> json.to_string
           |> wisp.json_response(404)
         Error(_) -> wisp.internal_server_error()
       }
-    }
+    Ok(#(None, Some(image_compression))) ->
+      update_compression(ctx, user_id, device_id, image_compression)
+    Ok(#(None, None)) -> wisp.unprocessable_content()
     Error(_) -> wisp.unprocessable_content()
+  }
+}
+
+fn update_compression(
+  ctx: Context,
+  user_id: String,
+  device_id: String,
+  image_compression: Int,
+) -> wisp.Response {
+  let polar_enabled = ctx.polar_webhook_secret != ""
+  case
+    device_service.update_device_config(
+      ctx.db,
+      user_id,
+      device_id,
+      image_compression,
+      polar_enabled,
+    )
+  {
+    Ok(device) ->
+      device_to_json(device)
+      |> json.to_string
+      |> wisp.json_response(200)
+    Error(device_service.PlanRequired) ->
+      json.object([
+        #("error", json.string("Pro plan required for device configuration")),
+      ])
+      |> json.to_string
+      |> wisp.json_response(403)
+    Error(device_service.DeviceNotFound) ->
+      json.object([#("error", json.string("Device not found"))])
+      |> json.to_string
+      |> wisp.json_response(404)
+    Error(_) -> wisp.internal_server_error()
   }
 }
 
