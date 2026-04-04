@@ -6,7 +6,7 @@
 
 body {
   background: #111214;
-  color: #c8c8c0;
+  color: #e0e0dc;
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
   line-height: 1.6;
@@ -102,7 +102,7 @@ a:hover {
 .form input[type="password"] {
   background: #1a1a1e;
   border: 1px solid #2a2a2e;
-  color: #c8c8c0;
+  color: #e0e0dc;
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
   padding: 4px 8px;
@@ -252,7 +252,7 @@ a:hover {
 .code-block {
   background: #0a0a0c;
   border: 1px solid #222;
-  color: #c8c8c0;
+  color: #e0e0dc;
   font-family: 'Courier New', Courier, monospace;
   font-size: 12px;
   padding: 8px 12px;
@@ -321,12 +321,10 @@ a:hover {
 #logout-btn {
   background: none;
   border: none;
-  color: #555;
+  color: #e0e0dc;
   font-family: 'Courier New', Courier, monospace;
   font-size: 12px;
   cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   padding: 0;
 }
 
