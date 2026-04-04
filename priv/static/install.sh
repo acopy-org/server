@@ -51,4 +51,7 @@ fi
 
 echo "installed $("${INSTALL_DIR}/${BIN}" version)."
 echo ""
-echo "run 'acopy setup' to configure."
+
+# Reattach stdin to terminal so interactive prompts work when piped via curl | sh
+exec < /dev/tty
+"${INSTALL_DIR}/${BIN}" setup
