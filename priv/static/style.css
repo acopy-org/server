@@ -107,6 +107,7 @@ a:hover {
   font-size: 13px;
   padding: 4px 8px;
   width: 280px;
+  max-width: 100%;
   outline: none;
 }
 
@@ -296,7 +297,7 @@ a:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 580px;
+  max-width: 100%;
 }
 
 .preview-image {
@@ -304,7 +305,7 @@ a:hover {
 }
 
 .preview-image img {
-  max-width: 320px;
+  max-width: 100%;
   max-height: 200px;
   border: 1px solid #222;
   border-radius: 2px;
@@ -396,4 +397,62 @@ a:hover {
 .clear-btn:hover {
   color: #e05050;
   border-color: #e05050;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  #main {
+    padding: 20px 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .form label {
+    width: auto;
+    text-align: left;
+  }
+
+  .form input[type="email"],
+  .form input[type="password"] {
+    width: 100%;
+  }
+
+  .form input[type="submit"],
+  .form .error,
+  .form .success,
+  .switch-link {
+    margin-left: 0;
+  }
+
+  .code-block {
+    font-size: 11px;
+    padding: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dashboard-actions {
+    align-items: flex-start;
+  }
+
+  .entry .top-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .hero-title {
+    font-size: 20px;
+  }
+
+  .hero-tagline {
+    font-size: 13px;
+  }
 }
