@@ -24,16 +24,16 @@
           <p class="info-text">macOS / Linux:</p>
           <div class="code-copy">
             <pre class="code-block">curl -fsSL https://acopy.org/install.sh | sh</pre>
-            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="curl -fsSL https://acopy.org/install.sh | sh">copy</button>
+            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="curl -fsSL https://acopy.org/install.sh | sh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
           </div>
           <p class="info-text">Windows (PowerShell):</p>
           <div class="code-copy">
             <pre class="code-block">irm https://acopy.org/install.ps1 | iex</pre>
-            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="irm https://acopy.org/install.ps1 | iex">copy</button>
+            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="irm https://acopy.org/install.ps1 | iex"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
           </div>
           <p class="info-text">Android:</p>
           <p class="info-text">
-            <a href="https://github.com/acopy-org/android/releases/latest" target="_blank">download APK from GitHub releases</a>
+            <a href="https://github.com/acopy-org/client/releases/latest/download/acopy-android.apk" target="_blank">download APK</a>
           </p>
           <p class="info-text">
             installs to:<br>
@@ -44,7 +44,7 @@
           <p class="info-text">then run:</p>
           <div class="code-copy">
             <pre class="code-block">acopy setup</pre>
-            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="acopy setup">copy</button>
+            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="acopy setup"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
           </div>
           <p class="info-text">
             (restart your terminal first, then verify with <code>acopy --version</code>)
@@ -117,11 +117,13 @@
   </div>
 
   <script>
+    var copySvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    var checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dba6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     function copyCmd(btn) {
       var cmd = btn.getAttribute('data-cmd');
       navigator.clipboard.writeText(cmd).then(function() {
-        btn.textContent = 'copied';
-        setTimeout(function() { btn.textContent = 'copy'; }, 1500);
+        btn.innerHTML = checkSvg;
+        setTimeout(function() { btn.innerHTML = copySvg; }, 1500);
       });
     }
 

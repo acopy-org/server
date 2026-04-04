@@ -219,29 +219,28 @@ a:hover {
 
 .code-copy .code-block {
   margin: 0;
-  padding-right: 60px;
+  padding-right: 36px;
 }
 
 .copy-btn {
   position: absolute;
-  top: 0;
-  right: 0;
-  background: #1a1a1e;
-  border: 1px solid #222;
-  border-left: none;
-  color: #555;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
-  padding: 8px 10px;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #444;
   cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  height: 100%;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
 }
 
 .copy-btn:hover {
-  color: #3dba6e;
-  background: #222;
+  color: #888;
+  background: #1a1a1e;
 }
 
 .code-block {
