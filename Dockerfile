@@ -23,8 +23,5 @@ ENV PORT=80
 
 EXPOSE 80
 
-HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
-  CMD wget -qO /dev/null http://localhost:80/ || exit 1
-
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["run"]
