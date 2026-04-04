@@ -9,6 +9,7 @@
 <body>
   <div id="main">
     <div id="hero">
+      <p id="header-link" class="info-text" style="text-align:right"><a href="/login">sign in</a> to manage your account and devices.</p>
       <img src="/static/favicon.png" alt="a" class="hero-logo">
       <p class="hero-title">acopy</p>
       <p class="hero-tagline">copy on one device, paste on another.</p>
@@ -93,8 +94,6 @@
         </div>
       </div>
 
-      <hr class="separator">
-      <p id="footer-link" class="info-text" style="text-align:center"><a href="/login">sign in</a> to manage your account and devices.</p>
     </div>
   </div>
 
@@ -118,7 +117,7 @@
           localStorage.removeItem('acopy_token');
           localStorage.removeItem('acopy_user');
         } else {
-          document.getElementById('footer-link').innerHTML = '<a href="/dashboard">dashboard</a>';
+          document.getElementById('header-link').innerHTML = '<a href="/dashboard">dashboard</a>';
         }
       });
     }
