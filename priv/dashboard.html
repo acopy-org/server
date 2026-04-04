@@ -96,13 +96,11 @@
     function renderNav(u) {
       document.getElementById('nav').innerHTML =
         '<span class="user">' + escHtml(u.email) + '</span>' +
-        ' | <button id="logout-btn" onclick="logout()">logout</button>';
+        '<button id="logout-btn" onclick="logout()">logout</button>';
     }
 
     function renderEntries() {
-      var html = '<p class="dashboard-email">' + escHtml(user.email) + '</p>';
-      html += '<p class="dashboard-subtitle">clipboard history</p>';
-      html += '<div id="ws-status" class="ws-status"></div>';
+      var html = '<div id="ws-status" class="ws-status"></div>';
       html += '<hr class="separator">';
       if (!entries || entries.length === 0) {
         html += '<p class="no-entries">no clipboard entries yet.</p>';
