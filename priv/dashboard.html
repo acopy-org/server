@@ -96,12 +96,13 @@
       var polarEnabled = user && user.polar_enabled;
 
       var html = '<div class="dashboard-header">';
-      html += '<div><p class="dashboard-email">' + escHtml(user.email) + ' <span class="plan-badge ' + plan + '">' + plan + '</span></p>';
+      html += '<div><p class="dashboard-email">' + escHtml(user.email) + ' <span class="plan-badge ' + plan + '">' + plan + '</span>';
+      if (plan === 'free' && polarEnabled) {
+        html += ' <button class="upgrade-btn" onclick="upgrade()">upgrade to pro</button>';
+      }
+      html += '</p>';
       html += '<p class="dashboard-subtitle">clipboard history</p></div>';
       html += '<div class="dashboard-actions"><div class="actions-row"><a href="/">home</a> <button id="logout-btn" onclick="logout()">logout</button></div>';
-      if (plan === 'free' && polarEnabled) {
-        html += '<button class="upgrade-btn" onclick="upgrade()">upgrade to pro — $15/yr</button>';
-      }
       html += '<button class="clear-btn" onclick="clearHistory()">clear history</button></div>';
       html += '</div>';
 
