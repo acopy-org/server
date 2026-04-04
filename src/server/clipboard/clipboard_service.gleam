@@ -33,6 +33,20 @@ pub fn get_entries_by_user(
   }
 }
 
+pub fn delete_all_entries(
+  db: pog.Connection,
+  user_id: String,
+) -> Result(Nil, pog.QueryError) {
+  case
+    pog.query("DELETE FROM clipboard_entries WHERE user_id = $1")
+    |> pog.parameter(pog.text(user_id))
+    |> pog.execute(on: db)
+  {
+    Ok(_) -> Ok(Nil)
+    Error(e) -> Error(e)
+  }
+}
+
 fn delete_old_entries(
   db: pog.Connection,
   user_id: String,

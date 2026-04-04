@@ -17,7 +17,21 @@ pub fn handle_request(
 ) -> wisp.Response {
   case path {
     ["push"] -> push(req, ctx)
+    ["clear"] -> clear(req, ctx)
     _ -> wisp.not_found()
+  }
+}
+
+fn clear(req: wisp.Request, ctx: Context) -> wisp.Response {
+  use <- wisp.require_method(req, http.Delete)
+  use user_id <- auth.require_auth(req, ctx.jwt_secret)
+
+  case clipboard_service.delete_all_entries(ctx.db, user_id) {
+    Ok(_) ->
+      json.object([#("ok", json.bool(True))])
+      |> json.to_string
+      |> wisp.json_response(200)
+    Error(_) -> wisp.internal_server_error()
   }
 }
 

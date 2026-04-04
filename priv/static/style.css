@@ -355,3 +355,26 @@ a:hover {
 .ws-disconnected {
   color: #e05050;
 }
+
+.time-local {
+  color: #333;
+  margin-left: 6px;
+}
+
+.clear-btn {
+  background: none;
+  border: 1px solid #2a2a2e;
+  color: #555;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+.clear-btn:hover {
+  color: #e05050;
+  border-color: #e05050;
+}
