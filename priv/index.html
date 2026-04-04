@@ -71,24 +71,19 @@
           <p class="info-label">// headless &amp; SSH</p>
           <p class="info-text">
             on headless Linux (e.g. over SSH), there's no display server
-            to access the clipboard. acopy detects this automatically and
-            uses <a href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands"
-              target="_blank">OSC 52</a>
-            &mdash; a terminal escape sequence that tells your local
-            terminal emulator to set its clipboard. the text travels
-            through your SSH connection back to the terminal on your
-            machine, no X11 forwarding needed.
+            to access the clipboard. acopy detects this during setup and
+            installs clipboard shims that replace
+            <code>xclip</code>/<code>xsel</code>/<code>pbcopy</code>/<code>pbpaste</code>.
+            tools like Claude Code, vim, and tmux work transparently
+            &mdash; no X11 forwarding needed.
           </p>
           <p class="info-text">
-            for images, OSC 52 only supports text, so acopy copies a
-            link to the image on the server (e.g.
-            <code>https://acopy.org/c/&lt;id&gt;</code>) into your
-            clipboard instead.
+            you can also use acopy directly from the shell:
           </p>
-          <p class="info-text">
-            works with terminals that support OSC 52: iTerm2, kitty,
-            alacritty, foot, Windows Terminal, and others.
-          </p>
+          <div class="code-copy">
+            <pre class="code-block">echo "hello" | acopy copy
+acopy paste</pre>
+          </div>
         </div>
         <div class="info-block">
           <p class="info-label">// pricing</p>
