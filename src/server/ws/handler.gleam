@@ -28,8 +28,8 @@ pub type WsState {
     conn_id: String,
     subject: Subject(WsOutbound),
     ctx: Context,
-    /// Timestamp (unix ms) when client signalled copy intent
-    pending_intent: Option(Int),
+    /// Pending copy intent: (timestamp_ms, device_name)
+    pending_intent: Option(#(Int, String)),
     /// Timer handle for intent timeout, so we can cancel it on push
     intent_timer: Option(Timer),
   )
@@ -166,7 +166,8 @@ fn handle_copy_intent(
       let now_ms = birl.now() |> birl.to_unix_milli
       let timer = process.send_after(state.subject, intent_timeout_ms, registry.IntentTimeout)
       let _ = erlang_format("copy_intent: " <> user_id <> " " <> device <> " at " <> int.to_string(now_ms) <> "\n")
-      let new_state = WsState(..state, pending_intent: Some(now_ms), intent_timer: Some(timer))
+      registry.broadcast_intent(state.ctx.registry, user_id, state.conn_id, device)
+      let new_state = WsState(..state, pending_intent: Some(#(now_ms, device)), intent_timer: Some(timer))
       send_ack(conn)
       mist.continue(new_state)
     }
@@ -177,18 +178,19 @@ fn handle_copy_cancel(
   state: WsState,
   conn: mist.WebsocketConnection,
 ) -> mist.Next(WsState, WsOutbound) {
-  case state.pending_intent {
-    Some(_) -> {
+  case state.pending_intent, state.user_id {
+    Some(#(_, device)), Some(user_id) -> {
       case state.intent_timer {
         Some(timer) -> { let _ = process.cancel_timer(timer) Nil }
         None -> Nil
       }
       let _ = erlang_format("copy_cancel: " <> state.conn_id <> "\n")
+      registry.broadcast_cancel(state.ctx.registry, user_id, state.conn_id, device)
       let new_state = WsState(..state, pending_intent: None, intent_timer: None)
       send_ack(conn)
       mist.continue(new_state)
     }
-    None -> {
+    _, _ -> {
       send_error(conn, 400, "No pending copy intent")
       mist.continue(state)
     }
@@ -225,7 +227,7 @@ fn handle_clipboard_push(
           // Calculate processing time if there was a pending copy intent
           let now_ms = birl.now() |> birl.to_unix_milli
           let processing_ms = case state.pending_intent {
-            Some(intent_ts) -> {
+            Some(#(intent_ts, _)) -> {
               let delta = now_ms - intent_ts
               let _ = erlang_format("copy_processing_ms: " <> int.to_string(delta) <> " " <> user_id <> " " <> device <> "\n")
               Some(delta)
@@ -286,6 +288,16 @@ fn handle_outbound(
     registry.OutboundBroadcast(id:, content:, device:, content_type:, ts:) -> {
       let frame =
         protocol.encode_no_compress(protocol.ClipboardBroadcastMsg(id:, content:, device:, content_type:, ts:))
+      let _ = mist.send_binary_frame(conn, frame)
+      mist.continue(state)
+    }
+    registry.OutboundCopyIntent(device:) -> {
+      let frame = protocol.encode_no_compress(protocol.CopyIntentMsg(device:))
+      let _ = mist.send_binary_frame(conn, frame)
+      mist.continue(state)
+    }
+    registry.OutboundCopyCancel(device: _) -> {
+      let frame = protocol.encode_no_compress(protocol.CopyCancelMsg)
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }

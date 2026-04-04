@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>acopy</title>
-  <link rel="stylesheet" href="/static/style.css?v=4">
+  <link rel="stylesheet" href="/static/style.css?v=5">
   <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 <body>
@@ -135,6 +135,16 @@
       } else {
         for (var i = 0; i < entries.length; i++) {
           var e = entries[i];
+          if (e._pending) {
+            html += '<div class="entry entry-pending">';
+            html += '<div class="top-row">';
+            html += '<span class="device">' + escHtml(e.device_name || '') + '</span>';
+            html += '<span class="time">just now</span>';
+            html += '</div>';
+            html += '<div class="preview pending-text">syncing...</div>';
+            html += '</div>';
+            continue;
+          }
           var text = hexToText(e.content);
           var size = e.content ? Math.floor(e.content.length / 2) : 0;
           var time = e.created_at || '';
@@ -348,6 +358,28 @@
         var flags = dv.getUint8(2);
         var length = dv.getUint32(3);
 
+        if (msgType === 0x08) { // CopyIntent
+          var payloadBuf = buf.slice(7, 7 + length);
+          var decoded = decodeMsgpack(payloadBuf, 0);
+          var device = decoded.value.device || '';
+          // Prepend a pending placeholder entry
+          entries.unshift({
+            _pending: true,
+            content: '',
+            content_type: 'text/plain',
+            device_name: device,
+            created_at: new Date().toISOString()
+          });
+          if (entries.length > 5) entries = entries.slice(0, 5);
+          renderEntries();
+        }
+
+        if (msgType === 0x09) { // CopyCancel
+          // Remove the pending placeholder
+          entries = entries.filter(function(e) { return !e._pending; });
+          renderEntries();
+        }
+
         if (msgType === 0x03) { // ClipboardBroadcast
           var payloadBuf = buf.slice(7, 7 + length);
           var decoded = decodeMsgpack(payloadBuf, 0);
@@ -360,12 +392,28 @@
           var contentType = map.content_type || 'text/plain';
           var created = ts ? new Date(ts * 1000).toISOString() : new Date().toISOString();
 
-          entries.unshift({
-            content: hexContent,
-            content_type: contentType,
-            device_name: device,
-            created_at: created
-          });
+          // Replace pending placeholder from same device, or prepend
+          var replaced = false;
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i]._pending && entries[i].device_name === device) {
+              entries[i] = {
+                content: hexContent,
+                content_type: contentType,
+                device_name: device,
+                created_at: created
+              };
+              replaced = true;
+              break;
+            }
+          }
+          if (!replaced) {
+            entries.unshift({
+              content: hexContent,
+              content_type: contentType,
+              device_name: device,
+              created_at: created
+            });
+          }
           if (entries.length > 5) entries = entries.slice(0, 5);
           renderEntries();
         }

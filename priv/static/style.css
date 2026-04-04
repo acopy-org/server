@@ -311,6 +311,19 @@ a:hover {
   border-radius: 2px;
 }
 
+.entry-pending {
+  opacity: 0.5;
+}
+
+.entry-pending .pending-text {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
 .no-entries {
   font-size: 12px;
   color: #999;

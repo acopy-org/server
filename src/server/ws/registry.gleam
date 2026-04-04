@@ -6,6 +6,8 @@ import gleam/otp/actor
 /// Message sent to a WebSocket connection for outbound delivery
 pub type WsOutbound {
   OutboundBroadcast(id: String, content: BitArray, device: String, content_type: String, ts: Int)
+  OutboundCopyIntent(device: String)
+  OutboundCopyCancel(device: String)
   IntentTimeout
 }
 
@@ -25,6 +27,16 @@ pub type RegistryMessage {
     device: String,
     content_type: String,
     ts: Int,
+  )
+  BroadcastIntent(
+    user_id: String,
+    exclude_conn_id: String,
+    device: String,
+  )
+  BroadcastCancel(
+    user_id: String,
+    exclude_conn_id: String,
+    device: String,
   )
 }
 
@@ -66,6 +78,26 @@ pub fn register(
 /// Remove a WebSocket connection from the registry.
 pub fn unregister(registry: Subject(RegistryMessage), conn_id: String) -> Nil {
   actor.send(registry, Unregister(conn_id:))
+}
+
+/// Broadcast copy intent to all connections for a user except the sender.
+pub fn broadcast_intent(
+  registry: Subject(RegistryMessage),
+  user_id: String,
+  exclude_conn_id: String,
+  device: String,
+) -> Nil {
+  actor.send(registry, BroadcastIntent(user_id:, exclude_conn_id:, device:))
+}
+
+/// Broadcast copy cancel to all connections for a user except the sender.
+pub fn broadcast_cancel(
+  registry: Subject(RegistryMessage),
+  user_id: String,
+  exclude_conn_id: String,
+  device: String,
+) -> Nil {
+  actor.send(registry, BroadcastCancel(user_id:, exclude_conn_id:, device:))
 }
 
 /// Broadcast clipboard content to all connections for a user except the sender.
@@ -122,23 +154,39 @@ fn handle_message(
     }
 
     Broadcast(user_id:, exclude_conn_id:, id:, content:, device:, content_type:, ts:) -> {
-      case dict.get(state.user_conns, user_id) {
-        Ok(conn_ids) -> {
-          list.each(conn_ids, fn(conn_id) {
-            case conn_id != exclude_conn_id {
-              True ->
-                case dict.get(state.connections, conn_id) {
-                  Ok(#(_, subject)) ->
-                    process.send(subject, OutboundBroadcast(id:, content:, device:, content_type:, ts:))
-                  Error(_) -> Nil
-                }
-              False -> Nil
-            }
-          })
-          actor.continue(state)
-        }
-        Error(_) -> actor.continue(state)
-      }
+      broadcast_to_others(state, user_id, exclude_conn_id, OutboundBroadcast(id:, content:, device:, content_type:, ts:))
     }
+
+    BroadcastIntent(user_id:, exclude_conn_id:, device:) -> {
+      broadcast_to_others(state, user_id, exclude_conn_id, OutboundCopyIntent(device:))
+    }
+
+    BroadcastCancel(user_id:, exclude_conn_id:, device:) -> {
+      broadcast_to_others(state, user_id, exclude_conn_id, OutboundCopyCancel(device:))
+    }
+  }
+}
+
+fn broadcast_to_others(
+  state: RegistryState,
+  user_id: String,
+  exclude_conn_id: String,
+  msg: WsOutbound,
+) -> actor.Next(RegistryState, RegistryMessage) {
+  case dict.get(state.user_conns, user_id) {
+    Ok(conn_ids) -> {
+      list.each(conn_ids, fn(conn_id) {
+        case conn_id != exclude_conn_id {
+          True ->
+            case dict.get(state.connections, conn_id) {
+              Ok(#(_, subject)) -> process.send(subject, msg)
+              Error(_) -> Nil
+            }
+          False -> Nil
+        }
+      })
+      actor.continue(state)
+    }
+    Error(_) -> actor.continue(state)
   }
 }
