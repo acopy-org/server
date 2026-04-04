@@ -614,5 +614,8 @@ a:hover {
 
   .hero-tagline {
     font-size: 13px;
+    line-height: 15px;
+    margin-top: 6px;
+    max-width: 70%;
   }
 }
