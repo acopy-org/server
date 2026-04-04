@@ -9,9 +9,13 @@
 <body>
   <div id="main">
     <div id="hero">
-      <p id="header-link" class="info-text" style="text-align:right"><a href="/login">sign in</a> to manage your account and devices.</p>
-      <img src="/static/favicon.png" alt="a" class="hero-logo">
-      <p class="hero-title">acopy</p>
+      <div style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+        <div style="display:flex;flex-direction:row;align-items:center;gap:0.5rem">
+          <img src="/static/favicon.png" alt="a" class="hero-logo" style="margin:0">
+          <p class="hero-title" style="margin:0">acopy</p>
+        </div>
+        <p id="header-link" class="info-text" style="margin:0"><a href="/login">sign in</a></p>
+      </div>
       <p class="hero-tagline">copy on one device, paste on another.</p>
       <p class="hero-desc">
         acopy syncs your clipboard across all your devices in real time.
