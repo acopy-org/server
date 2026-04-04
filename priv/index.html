@@ -35,20 +35,6 @@
           <p class="info-text">
             <a href="https://github.com/acopy-org/client/releases/latest/download/acopy-android.apk" target="_blank">download APK</a>
           </p>
-          <p class="info-text">
-            installs to:<br>
-            macOS: <code>/usr/local/bin/acopy</code><br>
-            Linux: <code>~/.local/bin/acopy</code><br>
-            Windows: <code>%LOCALAPPDATA%\acopy</code>
-          </p>
-          <p class="info-text">then run:</p>
-          <div class="code-copy">
-            <pre class="code-block">acopy setup</pre>
-            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="acopy setup"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-          </div>
-          <p class="info-text">
-            (restart your terminal first, then verify with <code>acopy --version</code>)
-          </p>
         </div>
         <div class="info-block">
           <p class="info-label">// how it works</p>
@@ -99,7 +85,7 @@
       </div>
 
       <hr class="separator">
-      <p class="info-text" style="text-align:center"><a href="/login">sign in</a> to manage your account and devices.</p>
+      <p id="footer-link" class="info-text" style="text-align:center"><a href="/login">sign in</a> to manage your account and devices.</p>
     </div>
   </div>
 
@@ -122,6 +108,8 @@
         if (!r.ok) {
           localStorage.removeItem('acopy_token');
           localStorage.removeItem('acopy_user');
+        } else {
+          document.getElementById('footer-link').innerHTML = '<a href="/dashboard">dashboard</a>';
         }
       });
     }
