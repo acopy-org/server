@@ -334,6 +334,12 @@ a:hover {
   color: #e05050;
 }
 
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
 .dashboard-email {
   color: #3dba6e;
   font-size: 14px;

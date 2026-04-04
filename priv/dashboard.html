@@ -7,11 +7,6 @@
   <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 <body>
-  <div id="header">
-    <span class="title">acopy</span>
-    <span class="nav" id="nav"></span>
-  </div>
-
   <div id="main">
     <div id="content">
       <p class="page-title">// loading...</p>
@@ -93,14 +88,13 @@
       return s.length > len ? s.slice(0, len) + '...' : s;
     }
 
-    function renderNav(u) {
-      document.getElementById('nav').innerHTML =
-        '<span class="user">' + escHtml(u.email) + '</span>' +
-        '<button id="logout-btn" onclick="logout()">logout</button>';
-    }
-
     function renderEntries() {
-      var html = '<div id="ws-status" class="ws-status"></div>';
+      var html = '<div class="dashboard-header">';
+      html += '<div><p class="dashboard-email">' + escHtml(user.email) + '</p>';
+      html += '<p class="dashboard-subtitle">clipboard history</p></div>';
+      html += '<button id="logout-btn" onclick="logout()">logout</button>';
+      html += '</div>';
+      html += '<div id="ws-status" class="ws-status"></div>';
       html += '<hr class="separator">';
       if (!entries || entries.length === 0) {
         html += '<p class="no-entries">no clipboard entries yet.</p>';
@@ -362,7 +356,7 @@
     }, 25000);
 
     function loadDashboard() {
-      renderNav(user);
+
       fetch('/api/users/me', {
         headers: { 'Authorization': 'Bearer ' + token }
       }).then(function(r) {
@@ -370,7 +364,7 @@
         r.json().then(function(u) {
           user = u;
           localStorage.setItem('acopy_user', JSON.stringify(u));
-          renderNav(u);
+
           entries = u.clipboard_entries || [];
           renderEntries();
           connectWs();
