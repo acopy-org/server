@@ -30,6 +30,9 @@ if [ "$OS" = "darwin" ]; then
     xattr -d com.apple.quarantine "/tmp/${BIN}" 2>/dev/null || true
 fi
 
+# Reattach stdin to terminal so sudo and setup prompts work when piped via curl | sh
+exec < /dev/tty
+
 echo "installing to ${INSTALL_DIR}/${BIN}..."
 if [ -w "$INSTALL_DIR" ]; then
     mv "/tmp/${BIN}" "${INSTALL_DIR}/${BIN}"
@@ -51,7 +54,4 @@ fi
 
 echo "installed $("${INSTALL_DIR}/${BIN}" version)."
 echo ""
-
-# Reattach stdin to terminal so interactive prompts work when piped via curl | sh
-exec < /dev/tty
 "${INSTALL_DIR}/${BIN}" setup
