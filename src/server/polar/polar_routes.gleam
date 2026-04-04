@@ -287,35 +287,29 @@ fn verify_webhook_signature(
     request.get_header(req, "webhook-signature")
   {
     Ok(webhook_id), Ok(timestamp), Ok(signature_header) -> {
-      // Strip webhook secret prefix and base64-decode the key
-      let secret_str = case secret {
-        "whsec_" <> rest -> rest
-        "polar_whs_" <> rest -> rest
-        _ -> secret
-      }
-      case bit_array.base64_decode(secret_str) {
-        Ok(key) -> {
-          // Sign: "{webhook_id}.{timestamp}.{body}"
-          let message = webhook_id <> "." <> timestamp <> "." <> body
-          let sig =
-            crypto.hmac(
-              bit_array.from_string(message),
-              crypto.Sha256,
-              key,
-            )
-          let expected = "v1," <> bit_array.base64_encode(sig, True)
+      // Polar base64-encodes the raw secret before passing to StandardWebhook,
+      // which then base64-decodes it. So the HMAC key is the UTF-8 bytes of
+      // the full secret string (including prefix).
+      let key = bit_array.from_string(secret)
 
-          // Check against all provided signatures (space-separated)
-          let signatures = string.split(signature_header, " ")
-          list.any(signatures, fn(s) {
-            crypto.secure_compare(
-              bit_array.from_string(s),
-              bit_array.from_string(expected),
-            )
-          })
-        }
-        Error(_) -> False
-      }
+      // Sign: "{webhook_id}.{timestamp}.{body}"
+      let message = webhook_id <> "." <> timestamp <> "." <> body
+      let sig =
+        crypto.hmac(
+          bit_array.from_string(message),
+          crypto.Sha256,
+          key,
+        )
+      let expected = "v1," <> bit_array.base64_encode(sig, True)
+
+      // Check against all provided signatures (space-separated)
+      let signatures = string.split(signature_header, " ")
+      list.any(signatures, fn(s) {
+        crypto.secure_compare(
+          bit_array.from_string(s),
+          bit_array.from_string(expected),
+        )
+      })
     }
     _, _, _ -> False
   }
