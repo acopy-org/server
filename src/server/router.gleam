@@ -18,8 +18,10 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
     ["static", ..path] -> static_file(req, path)
     ["install.sh"] -> install_script(req)
     ["install.ps1"] -> install_script_ps1(req)
+    ["login"] -> login_page(req)
     ["dashboard"] -> dashboard_page(req)
     ["index.html"] -> wisp.redirect("/")
+    ["login.html"] -> wisp.redirect("/login")
     ["dashboard.html"] -> wisp.redirect("/dashboard")
     ["c", id] -> serve_clipboard(req, ctx, id)
     [] -> index_page(req)
@@ -74,6 +76,13 @@ fn mime_type(path: List(String)) -> String {
 fn index_page(req: wisp.Request) -> wisp.Response {
   case req.method {
     http.Get -> read_file("priv/index.html", "text/html")
+    _ -> wisp.method_not_allowed(allowed: [http.Get])
+  }
+}
+
+fn login_page(req: wisp.Request) -> wisp.Response {
+  case req.method {
+    http.Get -> read_file("priv/login.html", "text/html")
     _ -> wisp.method_not_allowed(allowed: [http.Get])
   }
 }

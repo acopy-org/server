@@ -60,6 +60,28 @@
           </p>
         </div>
         <div class="info-block">
+          <p class="info-label">// headless &amp; SSH</p>
+          <p class="info-text">
+            on headless Linux (e.g. over SSH), there's no display server
+            to access the clipboard. acopy detects this automatically and
+            uses <a href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands" target="_blank">OSC 52</a>
+            &mdash; a terminal escape sequence that tells your local
+            terminal emulator to set its clipboard. the text travels
+            through your SSH connection back to the terminal on your
+            machine, no X11 forwarding needed.
+          </p>
+          <p class="info-text">
+            for images, OSC 52 only supports text, so acopy copies a
+            link to the image on the server (e.g.
+            <code>https://acopy.org/c/&lt;id&gt;</code>) into your
+            clipboard instead.
+          </p>
+          <p class="info-text">
+            works with terminals that support OSC 52: iTerm2, kitty,
+            alacritty, foot, Windows Terminal, and others.
+          </p>
+        </div>
+        <div class="info-block">
           <p class="info-label">// cost</p>
           <p class="info-text">
             free. no ads, no tracking, no premium tier.
@@ -77,42 +99,7 @@
       </div>
 
       <hr class="separator">
-    </div>
-
-    <div id="auth-forms">
-      <div id="login-form">
-        <p class="page-title">// sign in</p>
-        <form class="form" id="login-form-el" onsubmit="return handleLogin(event)">
-          <div class="form-row">
-            <label for="login-email">email</label>
-            <input type="email" id="login-email" name="email" required>
-          </div>
-          <div class="form-row">
-            <label for="login-password">pass</label>
-            <input type="password" id="login-password" name="password" required>
-          </div>
-          <input type="submit" value="login">
-          <div class="switch-link">no account? <a href="#" onclick="showRegister(); return false">register</a></div>
-          <div id="login-msg" class="error" style="display:none"></div>
-        </form>
-      </div>
-
-      <div id="register-form" style="display:none">
-        <p class="page-title">// create account</p>
-        <form class="form" id="register-form-el" onsubmit="return handleRegister(event)">
-          <div class="form-row">
-            <label for="reg-email">email</label>
-            <input type="email" id="reg-email" name="email" required>
-          </div>
-          <div class="form-row">
-            <label for="reg-password">pass</label>
-            <input type="password" id="reg-password" name="password" required minlength="8">
-          </div>
-          <input type="submit" value="register">
-          <div class="switch-link">have an account? <a href="#" onclick="showLogin(); return false">login</a></div>
-          <div id="reg-msg" class="error" style="display:none"></div>
-        </form>
-      </div>
+      <p class="info-text" style="text-align:center"><a href="/login">sign in</a> to manage your account and devices.</p>
     </div>
   </div>
 
@@ -128,7 +115,6 @@
     }
 
     var token = localStorage.getItem('acopy_token');
-
     if (token) {
       fetch('/api/users/me', {
         headers: { 'Authorization': 'Bearer ' + token }
@@ -143,86 +129,6 @@
           localStorage.removeItem('acopy_user');
         }
       });
-    }
-
-    function showLogin() {
-      document.getElementById('login-form').style.display = 'block';
-      document.getElementById('register-form').style.display = 'none';
-      clearMsgs();
-    }
-
-    function showRegister() {
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('register-form').style.display = 'block';
-      clearMsgs();
-    }
-
-    function clearMsgs() {
-      var el = document.getElementById('login-msg');
-      if (el) { el.style.display = 'none'; el.textContent = ''; }
-      el = document.getElementById('reg-msg');
-      if (el) { el.style.display = 'none'; el.textContent = ''; }
-    }
-
-    function showError(id, msg) {
-      var el = document.getElementById(id);
-      if (el) { el.textContent = msg; el.style.display = 'block'; }
-    }
-
-    function handleLogin(e) {
-      e.preventDefault();
-      clearMsgs();
-      var email = document.getElementById('login-email').value;
-      var password = document.getElementById('login-password').value;
-      fetch('/api/users/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, password: password })
-      }).then(function(r) {
-        if (r.ok) {
-          r.json().then(function(data) {
-            localStorage.setItem('acopy_token', data.token);
-            localStorage.setItem('acopy_user', JSON.stringify(data.user));
-            window.location.href = '/dashboard';
-          });
-        } else {
-          r.json().then(function(err) {
-            showError('login-msg', '// ' + (err.error || 'login failed'));
-          }).catch(function() {
-            showError('login-msg', '// login failed');
-          });
-        }
-      });
-      return false;
-    }
-
-    function handleRegister(e) {
-      e.preventDefault();
-      clearMsgs();
-      var email = document.getElementById('reg-email').value;
-      var password = document.getElementById('reg-password').value;
-      fetch('/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, password: password })
-      }).then(function(r) {
-        if (r.ok) {
-          r.json().then(function(user) {
-            var el = document.getElementById('reg-msg');
-            el.textContent = '// account created — now login';
-            el.className = 'success';
-            el.style.display = 'block';
-            setTimeout(showLogin, 800);
-          });
-        } else {
-          r.json().then(function(err) {
-            showError('reg-msg', '// ' + (err.error || 'registration failed'));
-          }).catch(function() {
-            showError('reg-msg', '// registration failed');
-          });
-        }
-      });
-      return false;
     }
   </script>
 </body>
