@@ -22,9 +22,19 @@
         <div class="info-block">
           <p class="info-label">// install</p>
           <p class="info-text">macOS / Linux:</p>
-          <pre class="code-block">curl -fsSL https://acopy.org/install.sh | sh</pre>
+          <div class="code-copy">
+            <pre class="code-block">curl -fsSL https://acopy.org/install.sh | sh</pre>
+            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="curl -fsSL https://acopy.org/install.sh | sh">copy</button>
+          </div>
           <p class="info-text">Windows (PowerShell):</p>
-          <pre class="code-block">irm https://acopy.org/install.ps1 | iex</pre>
+          <div class="code-copy">
+            <pre class="code-block">irm https://acopy.org/install.ps1 | iex</pre>
+            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="irm https://acopy.org/install.ps1 | iex">copy</button>
+          </div>
+          <p class="info-text">Android:</p>
+          <p class="info-text">
+            <a href="https://github.com/acopy-org/android/releases/latest" target="_blank">download APK from GitHub releases</a>
+          </p>
           <p class="info-text">
             installs to:<br>
             macOS: <code>/usr/local/bin/acopy</code><br>
@@ -32,7 +42,10 @@
             Windows: <code>%LOCALAPPDATA%\acopy</code>
           </p>
           <p class="info-text">then run:</p>
-          <pre class="code-block">acopy setup</pre>
+          <div class="code-copy">
+            <pre class="code-block">acopy setup</pre>
+            <button class="copy-btn" onclick="copyCmd(this)" data-cmd="acopy setup">copy</button>
+          </div>
           <p class="info-text">
             (restart your terminal first, then verify with <code>acopy --version</code>)
           </p>
@@ -104,6 +117,14 @@
   </div>
 
   <script>
+    function copyCmd(btn) {
+      var cmd = btn.getAttribute('data-cmd');
+      navigator.clipboard.writeText(cmd).then(function() {
+        btn.textContent = 'copied';
+        setTimeout(function() { btn.textContent = 'copy'; }, 1500);
+      });
+    }
+
     var token = localStorage.getItem('acopy_token');
 
     if (token) {
