@@ -412,45 +412,53 @@ a:hover {
   border-color: #e05050;
 }
 
-/* Pricing */
-.pricing-grid {
-  display: flex;
-  gap: 12px;
+/* Pricing table */
+.pricing-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 8px;
+  font-size: 12px;
 }
 
-.pricing-tier {
-  border: 1px solid #2a2a2e;
-  padding: 12px 16px;
-  flex: 1;
+.pricing-table th,
+.pricing-table td {
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid #1e1e22;
 }
 
-.pricing-tier.tier-pro {
-  border-color: #3dba6e;
-}
-
-.tier-name {
-  font-size: 11px;
+.pricing-table th {
   color: #999;
+  font-weight: normal;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-size: 11px;
+  padding-bottom: 8px;
 }
 
-.tier-price {
-  font-size: 20px;
+.pricing-table th.col-pro {
+  color: #3dba6e;
+}
+
+.pricing-table th .price-tag {
+  font-size: 10px;
+  color: #999;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pricing-table td:first-child {
+  color: #999;
+}
+
+.pricing-table td:not(:first-child) {
   color: #e0e0dc;
-  margin: 4px 0;
+  text-align: center;
 }
 
-.tier-interval {
-  font-size: 11px;
-  color: #999;
-}
-
-.tier-features {
-  font-size: 11px;
-  color: #999;
-  line-height: 1.7;
+.pricing-table th:not(:first-child) {
+  text-align: center;
 }
 
 /* Plan badge */

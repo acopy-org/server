@@ -92,18 +92,37 @@
         </div>
         <div class="info-block">
           <p class="info-label">// pricing</p>
-          <div class="pricing-grid">
-            <div class="pricing-tier">
-              <p class="tier-name">free</p>
-              <p class="tier-price">$0</p>
-              <p class="tier-features">2 devices, clipboard sync, 5 entry history</p>
-            </div>
-            <div class="pricing-tier tier-pro">
-              <p class="tier-name">pro</p>
-              <p class="tier-price">$15<span class="tier-interval">/year</span></p>
-              <p class="tier-features">unlimited devices, per-device config, image compression settings</p>
-            </div>
-          </div>
+          <table class="pricing-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>free</th>
+                <th class="col-pro">pro <span class="price-tag">$15/yr</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>devices</td>
+                <td>2</td>
+                <td>unlimited</td>
+              </tr>
+              <tr>
+                <td>clipboard sync</td>
+                <td>&#10003;</td>
+                <td>&#10003;</td>
+              </tr>
+              <tr>
+                <td>entry history</td>
+                <td>5</td>
+                <td>5</td>
+              </tr>
+              <tr>
+                <td>image compression</td>
+                <td>&#8212;</td>
+                <td>per-device</td>
+              </tr>
+            </tbody>
+          </table>
           <p class="info-text" style="margin-top:12px">
             self-hosted instances are always free with all features.
           </p>
