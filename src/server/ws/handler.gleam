@@ -316,6 +316,11 @@ fn handle_outbound(
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }
+    registry.OutboundDeviceDeleted(device_id:) -> {
+      let frame = protocol.encode_no_compress(protocol.DeviceDeletedMsg(device_id:))
+      let _ = mist.send_binary_frame(conn, frame)
+      mist.continue(state)
+    }
     registry.IntentTimeout -> {
       case state.pending_intent {
         Some(_) -> {

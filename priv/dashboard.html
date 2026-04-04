@@ -29,6 +29,16 @@
       window.location.href = '/';
     }
 
+    var copySvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    var checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dba6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    function copyCmd(btn) {
+      var cmd = btn.getAttribute('data-cmd');
+      navigator.clipboard.writeText(cmd).then(function() {
+        btn.innerHTML = checkSvg;
+        setTimeout(function() { btn.innerHTML = copySvg; }, 1500);
+      });
+    }
+
     function escHtml(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
@@ -126,6 +136,21 @@
           html += '</span>';
           html += '</div>';
         }
+        html += '</div>';
+      } else {
+        html += '<div class="devices-section">';
+        html += '<p class="devices-title">// no devices</p>';
+        html += '<p class="info-text">install acopy on a device to get started:</p>';
+        html += '<p class="info-text" style="margin-top:8px">macOS / Linux:</p>';
+        html += '<div class="code-copy"><pre class="code-block">curl -fsSL https://acopy.org/install.sh | sh</pre>';
+        html += '<button class="copy-btn" onclick="copyCmd(this)" data-cmd="curl -fsSL https://acopy.org/install.sh | sh">' + copySvg + '</button></div>';
+        html += '<p class="info-text" style="margin-top:8px">Windows (PowerShell):</p>';
+        html += '<div class="code-copy"><pre class="code-block">irm https://acopy.org/install.ps1 | iex</pre>';
+        html += '<button class="copy-btn" onclick="copyCmd(this)" data-cmd="irm https://acopy.org/install.ps1 | iex">' + copySvg + '</button></div>';
+        html += '<p class="info-text" style="margin-top:8px">Android:</p>';
+        html += '<div class="code-copy" style="width:150px;align-items:center;justify-content:center;padding:10px 0px">';
+        html += '<a href="https://github.com/acopy-org/client/releases/latest/download/acopy-android.apk" target="_blank">';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V7H6v11zM3.5 7C2.67 7 2 7.67 2 8.5v7c0 .83.67 1.5 1.5 1.5S5 16.33 5 15.5v-7C5 7.67 4.33 7 3.5 7zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0012 0c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31A5.983 5.983 0 006 6h12c0-2.21-1.24-4.13-3.47-5.84zM10 4H9V3h1v1zm5 0h-1V3h1v1z"/></svg>DOWNLOAD APK</a></div>';
         html += '</div>';
       }
 
@@ -394,6 +419,15 @@
               break;
             }
           }
+          renderEntries();
+        }
+
+        if (msgType === 0x0B) { // DeviceDeleted
+          var payloadBuf = buf.slice(7, 7 + length);
+          var decoded = decodeMsgpack(payloadBuf, 0);
+          var map = decoded.value;
+          var deviceId = map.device_id || '';
+          devices = devices.filter(function(d) { return d.id !== deviceId; });
           renderEntries();
         }
 

@@ -137,10 +137,12 @@ fn delete_device(
   use user_id <- auth.require_auth(req, ctx.jwt_secret)
 
   case device_service.delete_device(ctx.db, user_id, device_id) {
-    Ok(_) ->
+    Ok(_) -> {
+      registry.broadcast_device_deleted(ctx.registry, user_id, device_id)
       json.object([#("ok", json.bool(True))])
       |> json.to_string
       |> wisp.json_response(200)
+    }
     Error(_) -> wisp.internal_server_error()
   }
 }

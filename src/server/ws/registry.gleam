@@ -9,6 +9,7 @@ pub type WsOutbound {
   OutboundCopyIntent(device: String)
   OutboundCopyCancel(device: String)
   OutboundDeviceRenamed(device_id: String, old_name: String, new_name: String)
+  OutboundDeviceDeleted(device_id: String)
   IntentTimeout
 }
 
@@ -44,6 +45,10 @@ pub type RegistryMessage {
     device_id: String,
     old_name: String,
     new_name: String,
+  )
+  BroadcastDeviceDeleted(
+    user_id: String,
+    device_id: String,
   )
 }
 
@@ -118,6 +123,15 @@ pub fn broadcast_device_renamed(
   actor.send(registry, BroadcastDeviceRenamed(user_id:, device_id:, old_name:, new_name:))
 }
 
+/// Broadcast device deleted to all connections for a user.
+pub fn broadcast_device_deleted(
+  registry: Subject(RegistryMessage),
+  user_id: String,
+  device_id: String,
+) -> Nil {
+  actor.send(registry, BroadcastDeviceDeleted(user_id:, device_id:))
+}
+
 /// Broadcast clipboard content to all connections for a user except the sender.
 pub fn broadcast(
   registry: Subject(RegistryMessage),
@@ -186,6 +200,11 @@ fn handle_message(
     BroadcastDeviceRenamed(user_id:, device_id:, old_name:, new_name:) -> {
       // Broadcast to ALL connections for this user (no exclusion)
       broadcast_to_others(state, user_id, "", OutboundDeviceRenamed(device_id:, old_name:, new_name:))
+    }
+
+    BroadcastDeviceDeleted(user_id:, device_id:) -> {
+      // Broadcast to ALL connections for this user (no exclusion)
+      broadcast_to_others(state, user_id, "", OutboundDeviceDeleted(device_id:))
     }
   }
 }

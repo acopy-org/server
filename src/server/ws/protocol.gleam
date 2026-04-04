@@ -24,6 +24,8 @@ const msg_copy_cancel = 0x09
 
 const msg_device_renamed = 0x0A
 
+const msg_device_deleted = 0x0B
+
 // Flag bits
 const flag_zstd = 1
 
@@ -38,6 +40,7 @@ pub type WsMsg {
   CopyIntentMsg(device: String)
   CopyCancelMsg
   DeviceRenamedMsg(device_id: String, old_name: String, new_name: String)
+  DeviceDeletedMsg(device_id: String)
   AckWithProcessingMsg(processing_ms: Int)
 }
 
@@ -178,6 +181,16 @@ fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {
         _ -> Error("Invalid DeviceRenamed payload")
       }
     }
+    t if t == msg_device_deleted -> {
+      case msgpack.decode(payload) {
+        Ok(#(msgpack.Map(entries), _)) ->
+          case msgpack.get_string(entries, "device_id") {
+            Ok(device_id) -> Ok(DeviceDeletedMsg(device_id:))
+            Error(_) -> Error("Missing fields in DeviceDeleted")
+          }
+        _ -> Error("Invalid DeviceDeleted payload")
+      }
+    }
     _ -> Error("Unknown message type")
   }
 }
@@ -242,6 +255,12 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
         #(msgpack.Str("device_id"), msgpack.Str(device_id)),
         #(msgpack.Str("old_name"), msgpack.Str(old_name)),
         #(msgpack.Str("new_name"), msgpack.Str(new_name)),
+      ])),
+    )
+    DeviceDeletedMsg(device_id:) -> #(
+      msg_device_deleted,
+      msgpack.encode(msgpack.Map([
+        #(msgpack.Str("device_id"), msgpack.Str(device_id)),
       ])),
     )
   }
