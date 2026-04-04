@@ -345,6 +345,12 @@ a:hover {
   gap: 4px;
 }
 
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .dashboard-email {
   color: #3dba6e;
   font-size: 14px;

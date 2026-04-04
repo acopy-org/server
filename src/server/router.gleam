@@ -23,7 +23,13 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
     ["index.html"] -> wisp.redirect("/")
     ["login.html"] -> wisp.redirect("/login")
     ["dashboard.html"] -> wisp.redirect("/dashboard")
-    ["c", id] -> serve_clipboard(req, ctx, id)
+    ["c", filename] -> {
+      let id = case string.split(filename, ".") {
+        [base, _ext] -> base
+        _ -> filename
+      }
+      serve_clipboard(req, ctx, id)
+    }
     [] -> index_page(req)
     _ -> wisp.not_found()
   }

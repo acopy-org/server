@@ -92,7 +92,7 @@
       var html = '<div class="dashboard-header">';
       html += '<div><p class="dashboard-email">' + escHtml(user.email) + '</p>';
       html += '<p class="dashboard-subtitle">clipboard history</p></div>';
-      html += '<div class="dashboard-actions"><a href="/">home</a> <button id="logout-btn" onclick="logout()">logout</button><button class="clear-btn" onclick="clearHistory()">clear history</button></div>';
+      html += '<div class="dashboard-actions"><div class="actions-row"><a href="/">home</a> <button id="logout-btn" onclick="logout()">logout</button></div><button class="clear-btn" onclick="clearHistory()">clear history</button></div>';
       html += '</div>';
       html += '<div id="ws-status" class="ws-status"></div>';
       html += '<hr class="separator">';
@@ -332,7 +332,7 @@
             device_name: device,
             created_at: created
           });
-          if (entries.length > 50) entries = entries.slice(0, 50);
+          if (entries.length > 5) entries = entries.slice(0, 5);
           renderEntries();
         }
       };

@@ -22,7 +22,7 @@ pub fn get_entries_by_user(
 ) -> Result(List(ClipboardEntry), pog.QueryError) {
   case
     pog.query(
-      "SELECT id, content, device_name, content_type, created_at FROM clipboard_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50",
+      "SELECT id, content, device_name, content_type, created_at FROM clipboard_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5",
     )
     |> pog.parameter(pog.text(user_id))
     |> pog.returning(clipboard_entry_decoder())
@@ -53,7 +53,7 @@ fn delete_old_entries(
 ) -> Result(Nil, pog.QueryError) {
   case
     pog.query(
-      "DELETE FROM clipboard_entries WHERE user_id = $1 AND id NOT IN (SELECT id FROM clipboard_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50)",
+      "DELETE FROM clipboard_entries WHERE user_id = $1 AND id NOT IN (SELECT id FROM clipboard_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5)",
     )
     |> pog.parameter(pog.text(user_id))
     |> pog.execute(on: db)
