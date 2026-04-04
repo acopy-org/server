@@ -23,7 +23,7 @@ fi
 URL="${BASE_URL}/${BIN}-${OS}-${ARCH}"
 
 echo "downloading acopy for ${OS}/${ARCH}..."
-curl -fsSL "$URL" -o "/tmp/${BIN}"
+curl -fL --progress-bar "$URL" -o "/tmp/${BIN}"
 chmod +x "/tmp/${BIN}"
 
 if [ "$OS" = "darwin" ]; then
