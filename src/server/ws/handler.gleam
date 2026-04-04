@@ -107,6 +107,10 @@ fn handle_binary(
     Ok(protocol.AuthMsg(token:)) -> handle_auth(state, token, conn)
     Ok(protocol.ClipboardPushMsg(content:, device:, content_type:)) ->
       handle_clipboard_push(state, content, device, content_type, conn)
+    Ok(protocol.CopyIntentMsg(device:)) ->
+      handle_copy_intent(state, device, conn)
+    Ok(protocol.CopyCancelMsg) ->
+      handle_copy_cancel(state, conn)
     Ok(protocol.PingMsg) -> {
       let _ = mist.send_binary_frame(conn, protocol.encode(protocol.PongMsg))
       mist.continue(state)
@@ -143,6 +147,54 @@ fn handle_auth(
   }
 }
 
+fn handle_copy_intent(
+  state: WsState,
+  device: String,
+  conn: mist.WebsocketConnection,
+) -> mist.Next(WsState, WsOutbound) {
+  case state.user_id {
+    None -> {
+      send_error(conn, 401, "Not authenticated")
+      mist.continue(state)
+    }
+    Some(user_id) -> {
+      // Cancel any existing intent timer
+      case state.intent_timer {
+        Some(timer) -> { let _ = process.cancel_timer(timer) Nil }
+        None -> Nil
+      }
+      let now_ms = birl.now() |> birl.to_unix_milli
+      let timer = process.send_after(state.subject, intent_timeout_ms, registry.IntentTimeout)
+      let _ = erlang_format("copy_intent: " <> user_id <> " " <> device <> " at " <> int.to_string(now_ms) <> "\n")
+      let new_state = WsState(..state, pending_intent: Some(now_ms), intent_timer: Some(timer))
+      send_ack(conn)
+      mist.continue(new_state)
+    }
+  }
+}
+
+fn handle_copy_cancel(
+  state: WsState,
+  conn: mist.WebsocketConnection,
+) -> mist.Next(WsState, WsOutbound) {
+  case state.pending_intent {
+    Some(_) -> {
+      case state.intent_timer {
+        Some(timer) -> { let _ = process.cancel_timer(timer) Nil }
+        None -> Nil
+      }
+      let _ = erlang_format("copy_cancel: " <> state.conn_id <> "\n")
+      let new_state = WsState(..state, pending_intent: None, intent_timer: None)
+      send_ack(conn)
+      mist.continue(new_state)
+    }
+    None -> {
+      send_error(conn, 400, "No pending copy intent")
+      mist.continue(state)
+    }
+  }
+}
+
 fn handle_clipboard_push(
   state: WsState,
   content: BitArray,
@@ -170,6 +222,21 @@ fn handle_clipboard_push(
               mist.continue(state)
             }
             _ -> {
+          // Calculate processing time if there was a pending copy intent
+          let now_ms = birl.now() |> birl.to_unix_milli
+          let processing_ms = case state.pending_intent {
+            Some(intent_ts) -> {
+              let delta = now_ms - intent_ts
+              let _ = erlang_format("copy_processing_ms: " <> int.to_string(delta) <> " " <> user_id <> " " <> device <> "\n")
+              Some(delta)
+            }
+            None -> None
+          }
+          // Cancel intent timer if active
+          case state.intent_timer {
+            Some(timer) -> { let _ = process.cancel_timer(timer) Nil }
+            None -> Nil
+          }
           let content_size = bit_array.byte_size(content)
           let _ = erlang_format("clipboard_push: " <> user_id <> " " <> device <> " " <> content_type <> " " <> string.inspect(content_size) <> "b\n")
           let id = case
@@ -195,8 +262,13 @@ fn handle_clipboard_push(
             content_type,
             ts,
           )
-          send_ack(conn)
-          mist.continue(state)
+          // Include processing_ms in ack if intent was pending
+          case processing_ms {
+            Some(ms) -> send_ack_with_processing(conn, ms)
+            None -> send_ack(conn)
+          }
+          let new_state = WsState(..state, pending_intent: None, intent_timer: None)
+          mist.continue(new_state)
             }
           }
         }
@@ -217,11 +289,28 @@ fn handle_outbound(
       let _ = mist.send_binary_frame(conn, frame)
       mist.continue(state)
     }
+    registry.IntentTimeout -> {
+      case state.pending_intent {
+        Some(_) -> {
+          let _ = erlang_format("copy_intent_timeout: " <> state.conn_id <> "\n")
+          send_error(conn, 408, "Copy intent timed out")
+          let new_state = WsState(..state, pending_intent: None, intent_timer: None)
+          mist.continue(new_state)
+        }
+        // Intent was already fulfilled, ignore stale timeout
+        None -> mist.continue(state)
+      }
+    }
   }
 }
 
 fn send_ack(conn: mist.WebsocketConnection) -> Nil {
   let _ = mist.send_binary_frame(conn, protocol.encode(protocol.AckMsg))
+  Nil
+}
+
+fn send_ack_with_processing(conn: mist.WebsocketConnection, processing_ms: Int) -> Nil {
+  let _ = mist.send_binary_frame(conn, protocol.encode(protocol.AckWithProcessingMsg(processing_ms:)))
   Nil
 }
 

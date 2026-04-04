@@ -20,6 +20,8 @@ const msg_pong = 0x07
 
 const msg_copy_intent = 0x08
 
+const msg_copy_cancel = 0x09
+
 // Flag bits
 const flag_zstd = 1
 
@@ -32,6 +34,8 @@ pub type WsMsg {
   PingMsg
   PongMsg
   CopyIntentMsg(device: String)
+  CopyCancelMsg
+  AckWithProcessingMsg(processing_ms: Int)
 }
 
 /// Decode a binary WebSocket frame into a protocol message.
@@ -149,6 +153,7 @@ fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {
         _ -> Error("Invalid CopyIntent payload")
       }
     }
+    t if t == msg_copy_cancel -> Ok(CopyCancelMsg)
     _ -> Error("Unknown message type")
   }
 }
@@ -183,6 +188,13 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
       msg_ack,
       msgpack.encode(msgpack.Map([#(msgpack.Str("ok"), msgpack.Bool(True))])),
     )
+    AckWithProcessingMsg(processing_ms:) -> #(
+      msg_ack,
+      msgpack.encode(msgpack.Map([
+        #(msgpack.Str("ok"), msgpack.Bool(True)),
+        #(msgpack.Str("processing_ms"), msgpack.Int(processing_ms)),
+      ])),
+    )
     ErrorMsg(code:, msg:) -> #(
       msg_error,
       msgpack.encode(msgpack.Map([
@@ -198,6 +210,7 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
         #(msgpack.Str("device"), msgpack.Str(device)),
       ])),
     )
+    CopyCancelMsg -> #(msg_copy_cancel, <<>>)
   }
 }
 

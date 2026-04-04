@@ -25,8 +25,10 @@ sequenceDiagram
     B->>S: Auth (0x01, jwt)
     S-->>B: Ack (0x04)
 
-    A->>S: ClipboardPush (0x02)
+    A->>S: CopyIntent (0x08)
     S-->>A: Ack (0x04)
+    A->>S: ClipboardPush (0x02)
+    S-->>A: Ack (0x04, processing_ms)
     S->>B: ClipboardBroadcast (0x03)
 
     A->>S: Ping (0x06)
@@ -74,10 +76,12 @@ Every message is a binary frame with this layout:
 | Auth               | `0x01` | client → server  | `{"token": "<jwt>"}`                           |
 | ClipboardPush      | `0x02` | client → server  | `{"content": <bytes>, "device": "<name>"}`     |
 | ClipboardBroadcast | `0x03` | server → client  | `{"content": <bytes>, "device": "<name>", "ts": <unix>}` |
-| Ack                | `0x04` | server → client  | `{"ok": true}`                                 |
+| Ack                | `0x04` | server → client  | `{"ok": true}` or `{"ok": true, "processing_ms": <int>}` |
 | Error              | `0x05` | server → client  | `{"code": <int>, "msg": "<reason>"}`           |
 | Ping               | `0x06` | either           | empty                                          |
 | Pong               | `0x07` | either           | empty                                          |
+| CopyIntent         | `0x08` | client → server  | `{"device": "<name>"}`                         |
+| CopyCancel         | `0x09` | client → server  | empty                                          |
 
 ### Connection Lifecycle
 
@@ -89,6 +93,40 @@ Every message is a binary frame with this layout:
 6. Ping/Pong every 30s for keepalive
 
 The server maintains a registry mapping each user to their active connections. When broadcasting, the pushing connection is excluded to prevent echo loops. Maximum clipboard payload size is 10 MB.
+
+### Copy Intent
+
+Clients can signal that a copy operation has started before the payload is ready (e.g., while compressing or reading large content). This measures the time from copy start to payload delivery.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    C->>S: CopyIntent (0x08, {"device": "phone"})
+    S-->>C: Ack (0x04)
+    Note over S: Start 30s timeout timer
+
+    alt Payload arrives in time
+        C->>S: ClipboardPush (0x02)
+        S-->>C: Ack (0x04, {"ok": true, "processing_ms": 1200})
+        Note over S: Logs copy_processing_ms: 1200
+    else Client cancels
+        C->>S: CopyCancel (0x09)
+        S-->>C: Ack (0x04)
+        Note over S: Clears pending intent, cancels timer
+    else Timeout (30s)
+        S-->>C: Error (0x05, {"code": 408, "msg": "Copy intent timed out"})
+        Note over S: Clears pending intent
+    end
+```
+
+1. Client sends `CopyIntent` with `{"device": "<name>"}` when the copy starts
+2. Server records the timestamp and starts a 30-second timeout
+3. When `ClipboardPush` arrives, server calculates `processing_ms` (time since intent) and includes it in the Ack payload
+4. Client can send `CopyCancel` to explicitly abort a pending intent (cancels the timer, server acks)
+5. If the push never arrives within 30 seconds, server sends Error `408` and clears the intent
+6. A new `CopyIntent` replaces any existing pending intent (cancels the old timer)
 
 ## Database
 
