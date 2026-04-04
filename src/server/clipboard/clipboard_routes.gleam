@@ -6,6 +6,7 @@ import gleam/json
 import gleam/string
 import server/auth/auth
 import server/clipboard/clipboard_service
+import server/device/device_service
 import server/web.{type Context}
 import server/ws/registry
 import wisp
@@ -57,6 +58,14 @@ fn push(req: wisp.Request, ctx: Context) -> wisp.Response {
       |> json.to_string
       |> wisp.json_response(413)
     False -> {
+      // Enforce device limits
+      let polar_enabled = ctx.polar_webhook_secret != ""
+      case device_service.ensure_device(ctx.db, user_id, device, polar_enabled) {
+        Error(device_service.DeviceLimitReached) ->
+          json.object([#("error", json.string("Device limit reached. Upgrade to Pro for unlimited devices."))])
+          |> json.to_string
+          |> wisp.json_response(403)
+        _ -> {
       case clipboard_service.save_entry(ctx.db, user_id, body, device, content_type) {
         Ok(id) -> {
           let ts = birl.now() |> birl.to_unix
@@ -78,6 +87,8 @@ fn push(req: wisp.Request, ctx: Context) -> wisp.Response {
         Error(e) -> {
           let _ = string.inspect(e)
           wisp.internal_server_error()
+        }
+      }
         }
       }
     }

@@ -5,6 +5,8 @@ import gleam/list
 import gleam/string
 import server/clipboard/clipboard_routes
 import server/clipboard/clipboard_service
+import server/device/device_routes
+import server/polar/polar_routes
 import server/user/user_routes
 import server/web.{type Context}
 import wisp
@@ -15,6 +17,8 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
   case wisp.path_segments(req) {
     ["api", "clipboard", ..rest] -> clipboard_routes.handle_request(req, ctx, rest)
     ["api", "users", ..rest] -> user_routes.handle_request(req, ctx, rest)
+    ["api", "devices", ..rest] -> device_routes.handle_request(req, ctx, rest)
+    ["api", "polar", ..rest] -> polar_routes.handle_request(req, ctx, rest)
     ["static", ..path] -> static_file(req, path)
     ["install.sh"] -> install_script(req)
     ["install.ps1"] -> install_script_ps1(req)

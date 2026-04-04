@@ -399,6 +399,145 @@ a:hover {
   border-color: #e05050;
 }
 
+/* Pricing */
+.pricing-grid {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pricing-tier {
+  border: 1px solid #2a2a2e;
+  padding: 12px 16px;
+  flex: 1;
+}
+
+.pricing-tier.tier-pro {
+  border-color: #3dba6e;
+}
+
+.tier-name {
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tier-price {
+  font-size: 20px;
+  color: #e0e0dc;
+  margin: 4px 0;
+}
+
+.tier-interval {
+  font-size: 11px;
+  color: #999;
+}
+
+.tier-features {
+  font-size: 11px;
+  color: #999;
+  line-height: 1.7;
+}
+
+/* Plan badge */
+.plan-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border: 1px solid #2a2a2e;
+  color: #999;
+  display: inline-block;
+}
+
+.plan-badge.pro {
+  border-color: #3dba6e;
+  color: #3dba6e;
+}
+
+.upgrade-btn {
+  background: none;
+  border: 1px solid #3dba6e;
+  color: #3dba6e;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upgrade-btn:hover {
+  background: #3dba6e;
+  color: #111214;
+}
+
+/* Devices section */
+.devices-section {
+  margin-top: 16px;
+}
+
+.devices-title {
+  font-size: 11px;
+  color: #3dba6e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.device-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #1a1a1e;
+  font-size: 12px;
+}
+
+.device-name {
+  color: #e0e0dc;
+}
+
+.device-meta {
+  color: #999;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.device-config {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.device-config label {
+  color: #999;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.device-config input[type="range"] {
+  width: 60px;
+  accent-color: #3dba6e;
+}
+
+.device-delete {
+  background: none;
+  border: none;
+  color: #999;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.device-delete:hover {
+  color: #e05050;
+}
+
 /* Mobile */
 @media (max-width: 480px) {
   #main {

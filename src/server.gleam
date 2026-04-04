@@ -43,7 +43,24 @@ pub fn main() {
   let assert Ok(_) = db.migrate(db)
   let assert Ok(reg) = registry.start()
 
-  let ctx = web.Context(db: db, jwt_secret: jwt_secret, registry: reg)
+  let polar_webhook_secret = case envoy.get("POLAR_WEBHOOK_SECRET") {
+    Ok(s) -> s
+    Error(_) -> ""
+  }
+
+  let polar_checkout_link = case envoy.get("POLAR_CHECKOUT_LINK") {
+    Ok(s) -> s
+    Error(_) -> ""
+  }
+
+  let ctx =
+    web.Context(
+      db: db,
+      jwt_secret: jwt_secret,
+      registry: reg,
+      polar_webhook_secret: polar_webhook_secret,
+      polar_checkout_link: polar_checkout_link,
+    )
 
   let http_handler =
     fn(req) { router.handle_request(req, ctx) }

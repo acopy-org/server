@@ -18,6 +18,7 @@
     var token = localStorage.getItem('acopy_token');
     var user = null;
     var entries = [];
+    var devices = [];
     var ws = null;
 
     try {
@@ -90,11 +91,43 @@
     }
 
     function renderEntries() {
+      var plan = (user && user.plan) || 'free';
+      var maxDevices = (user && user.max_devices) || 2;
+      var polarEnabled = user && user.polar_enabled;
+
       var html = '<div class="dashboard-header">';
-      html += '<div><p class="dashboard-email">' + escHtml(user.email) + '</p>';
+      html += '<div><p class="dashboard-email">' + escHtml(user.email) + ' <span class="plan-badge ' + plan + '">' + plan + '</span></p>';
       html += '<p class="dashboard-subtitle">clipboard history</p></div>';
-      html += '<div class="dashboard-actions"><div class="actions-row"><a href="/">home</a> <button id="logout-btn" onclick="logout()">logout</button></div><button class="clear-btn" onclick="clearHistory()">clear history</button></div>';
+      html += '<div class="dashboard-actions"><div class="actions-row"><a href="/">home</a> <button id="logout-btn" onclick="logout()">logout</button></div>';
+      if (plan === 'free' && polarEnabled) {
+        html += '<button class="upgrade-btn" onclick="upgrade()">upgrade to pro — $15/yr</button>';
+      }
+      html += '<button class="clear-btn" onclick="clearHistory()">clear history</button></div>';
       html += '</div>';
+
+      // Devices section
+      if (devices.length > 0) {
+        html += '<div class="devices-section">';
+        html += '<p class="devices-title">// devices (' + devices.length + (plan === 'free' ? '/' + maxDevices : '') + ')</p>';
+        for (var i = 0; i < devices.length; i++) {
+          var d = devices[i];
+          html += '<div class="device-item">';
+          html += '<span class="device-name">' + escHtml(d.device_name) + '</span>';
+          html += '<span class="device-meta">';
+          if (plan === 'pro') {
+            html += '<span class="device-config">';
+            html += '<label>img quality</label>';
+            html += '<input type="range" min="10" max="100" step="10" value="' + d.image_compression + '" onchange="updateDeviceConfig(\'' + d.id + '\', this.value)">';
+            html += '<span>' + d.image_compression + '%</span>';
+            html += '</span>';
+          }
+          html += '<button class="device-delete" onclick="deleteDevice(\'' + d.id + '\', \'' + escHtml(d.device_name) + '\')">x</button>';
+          html += '</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
       html += '<div id="ws-status" class="ws-status"></div>';
       html += '<hr class="separator">';
       if (!entries || entries.length === 0) {
@@ -366,6 +399,7 @@
           localStorage.setItem('acopy_user', JSON.stringify(u));
 
           entries = u.clipboard_entries || [];
+          devices = u.devices || [];
           renderEntries();
           connectWs();
         });
@@ -383,6 +417,53 @@
       }).then(function(r) {
         if (r.ok) {
           entries = [];
+          renderEntries();
+        }
+      });
+    }
+
+    function upgrade() {
+      fetch('/api/polar/checkout', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function(r) {
+        if (!r.ok) { alert('Could not start checkout'); return; }
+        r.json().then(function(data) {
+          if (data.url) window.location.href = data.url;
+        });
+      });
+    }
+
+    function updateDeviceConfig(deviceId, value) {
+      fetch('/api/devices/' + deviceId, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ image_compression: parseInt(value) })
+      }).then(function(r) {
+        if (r.ok) {
+          r.json().then(function(d) {
+            for (var i = 0; i < devices.length; i++) {
+              if (devices[i].id === d.id) {
+                devices[i] = d;
+                break;
+              }
+            }
+            renderEntries();
+          });
+        }
+      });
+    }
+
+    function deleteDevice(deviceId, name) {
+      if (!confirm('Remove device "' + name + '"?')) return;
+      fetch('/api/devices/' + deviceId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function(r) {
+        if (r.ok) {
+          devices = devices.filter(function(d) { return d.id !== deviceId; });
           renderEntries();
         }
       });

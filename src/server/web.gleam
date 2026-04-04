@@ -8,6 +8,8 @@ pub type Context {
     db: pog.Connection,
     jwt_secret: String,
     registry: Subject(RegistryMessage),
+    polar_webhook_secret: String,
+    polar_checkout_link: String,
   )
 }
 

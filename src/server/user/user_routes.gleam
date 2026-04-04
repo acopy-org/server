@@ -4,6 +4,8 @@ import gleam/http
 import gleam/json
 import server/auth/auth
 import server/clipboard/clipboard_service
+import server/device/device_service
+import server/subscription/subscription_service
 import server/user/user
 import server/user/user_service
 import server/web.{type Context}
@@ -79,6 +81,13 @@ fn me(req: wisp.Request, ctx: Context) -> wisp.Response {
         Ok(e) -> e
         Error(_) -> []
       }
+      let polar_enabled = ctx.polar_webhook_secret != ""
+      let plan =
+        subscription_service.get_effective_plan(ctx.db, user_id, polar_enabled)
+      let devices = case device_service.get_devices(ctx.db, user_id) {
+        Ok(d) -> d
+        Error(_) -> []
+      }
       json.object([
         #("id", json.string(found_user.id)),
         #("email", json.string(found_user.email)),
@@ -87,6 +96,10 @@ fn me(req: wisp.Request, ctx: Context) -> wisp.Response {
           "clipboard_entries",
           json.array(entries, clipboard_entry_to_json),
         ),
+        #("plan", json.string(subscription_service.plan_to_string(plan))),
+        #("max_devices", json.int(subscription_service.max_devices(plan))),
+        #("devices", json.array(devices, device_to_json)),
+        #("polar_enabled", json.bool(polar_enabled)),
       ])
       |> json.to_string
       |> wisp.json_response(200)
@@ -96,6 +109,16 @@ fn me(req: wisp.Request, ctx: Context) -> wisp.Response {
       |> json.to_string
       |> wisp.json_response(401)
   }
+}
+
+fn device_to_json(device: device_service.Device) -> json.Json {
+  json.object([
+    #("id", json.string(device.id)),
+    #("device_name", json.string(device.device_name)),
+    #("image_compression", json.int(device.image_compression)),
+    #("created_at", json.string(device.created_at)),
+    #("last_seen_at", json.string(device.last_seen_at)),
+  ])
 }
 
 fn clipboard_entry_to_json(entry: clipboard_service.ClipboardEntry) -> json.Json {

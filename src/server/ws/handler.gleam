@@ -8,6 +8,7 @@ import gleam/string
 import mist
 import server/auth/auth
 import server/clipboard/clipboard_service
+import server/device/device_service
 import server/web.{type Context}
 import server/ws/protocol
 import server/ws/registry.{type WsOutbound}
@@ -151,6 +152,14 @@ fn handle_clipboard_push(
           mist.continue(state)
         }
         False -> {
+          // Enforce device limits
+          let polar_enabled = state.ctx.polar_webhook_secret != ""
+          case device_service.ensure_device(state.ctx.db, user_id, device, polar_enabled) {
+            Error(device_service.DeviceLimitReached) -> {
+              send_error(conn, 403, "Device limit reached. Upgrade to Pro for unlimited devices.")
+              mist.continue(state)
+            }
+            _ -> {
           let content_size = bit_array.byte_size(content)
           let _ = erlang_format("clipboard_push: " <> user_id <> " " <> device <> " " <> content_type <> " " <> string.inspect(content_size) <> "b\n")
           let id = case
@@ -178,6 +187,8 @@ fn handle_clipboard_push(
           )
           send_ack(conn)
           mist.continue(state)
+            }
+          }
         }
       }
     }
