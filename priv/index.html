@@ -113,7 +113,7 @@
         if (r.ok) {
           r.json().then(function(user) {
             localStorage.setItem('acopy_user', JSON.stringify(user));
-            window.location.href = '/dashboard.html';
+            window.location.href = '/dashboard';
           });
         } else {
           localStorage.removeItem('acopy_token');
@@ -160,7 +160,7 @@
           r.json().then(function(data) {
             localStorage.setItem('acopy_token', data.token);
             localStorage.setItem('acopy_user', JSON.stringify(data.user));
-            window.location.href = '/dashboard.html';
+            window.location.href = '/dashboard';
           });
         } else {
           r.json().then(function(err) {

@@ -18,10 +18,11 @@ pub fn handle_request(req: wisp.Request, ctx: Context) -> wisp.Response {
     ["static", ..path] -> static_file(req, path)
     ["install.sh"] -> install_script(req)
     ["install.ps1"] -> install_script_ps1(req)
-    ["index.html"] -> index_page(req)
-    ["dashboard.html"] -> dashboard_page(req)
+    ["dashboard"] -> dashboard_page(req)
+    ["index.html"] -> wisp.redirect("/")
+    ["dashboard.html"] -> wisp.redirect("/dashboard")
     ["c", id] -> serve_clipboard(req, ctx, id)
-    [] -> wisp.redirect("/index.html")
+    [] -> index_page(req)
     _ -> wisp.not_found()
   }
 }
