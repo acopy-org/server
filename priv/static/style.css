@@ -422,9 +422,18 @@ a:hover {
 
 .pricing-table th,
 .pricing-table td {
-  padding: 6px 12px;
+  padding: 10px 16px;
   text-align: left;
-  border-bottom: 1px solid #1e1e22;
+  border-bottom: 1px solid #2a2a2e;
+}
+
+.pricing-table th,
+.pricing-table td {
+  border: 1px solid #2a2a2e;
+}
+
+.pricing-table thead tr {
+  background: #161618;
 }
 
 .pricing-table th {
@@ -433,7 +442,7 @@ a:hover {
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 11px;
-  padding-bottom: 8px;
+  padding: 10px 16px;
 }
 
 .pricing-table th.col-pro {
