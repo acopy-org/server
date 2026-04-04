@@ -5,6 +5,7 @@ import gleam/http
 import gleam/http/request
 import gleam/json
 import gleam/list
+import gleam/option
 import gleam/string
 import server/auth/auth
 import server/subscription/subscription_service
@@ -60,10 +61,14 @@ fn process_webhook(body: String, ctx: Context) -> wisp.Response {
       |> json.to_string
       |> wisp.json_response(400)
     Ok(event_type) -> {
-      case string.starts_with(event_type, "subscription.") {
-        True -> handle_subscription_event(body, event_type, ctx)
-        False -> {
-          // Acknowledge non-subscription events
+      case
+        string.starts_with(event_type, "subscription."),
+        string.starts_with(event_type, "order.")
+      {
+        True, _ -> handle_subscription_event(body, event_type, ctx)
+        _, True -> handle_order_event(body, event_type, ctx)
+        _, _ -> {
+          // Acknowledge other events
           json.object([#("ok", json.bool(True))])
           |> json.to_string
           |> wisp.json_response(200)
@@ -78,15 +83,18 @@ fn handle_subscription_event(
   event_type: String,
   ctx: Context,
 ) -> wisp.Response {
-  // Decode nested: data.id, data.status, data.customer.id, data.customer.external_id
   let sub_decoder = {
     use data <- decode.field("data", {
       use sub_id <- decode.field("id", decode.string)
       use status <- decode.field("status", decode.string)
       use customer <- decode.field("customer", {
         use customer_id <- decode.field("id", decode.string)
-        use external_id <- decode.field("external_id", decode.string)
-        decode.success(#(customer_id, external_id))
+        use external_id <- decode.field(
+          "external_id",
+          decode.optional(decode.string),
+        )
+        use email <- decode.field("email", decode.string)
+        decode.success(#(customer_id, external_id, email))
       })
       decode.success(#(sub_id, status, customer))
     })
@@ -95,38 +103,135 @@ fn handle_subscription_event(
 
   case json.parse(from: body, using: sub_decoder) {
     Error(_) -> {
-      // Can't map to a user — acknowledge to prevent retries
       json.object([#("ok", json.bool(True)), #("skipped", json.bool(True))])
       |> json.to_string
       |> wisp.json_response(200)
     }
-    Ok(#(sub_id, status, #(customer_id, external_id))) -> {
-      let plan = case event_type {
-        "subscription.active" -> "pro"
-        "subscription.revoked" -> "free"
-        _ -> {
-          case status {
-            "active" -> "pro"
-            "trialing" -> "pro"
-            _ -> "free"
+    Ok(#(sub_id, status, #(customer_id, external_id, email))) -> {
+      case resolve_user_id(ctx, external_id, email) {
+        Error(_) -> {
+          json.object([
+            #("ok", json.bool(True)),
+            #("skipped", json.bool(True)),
+          ])
+          |> json.to_string
+          |> wisp.json_response(200)
+        }
+        Ok(user_id) -> {
+          let plan = case event_type {
+            "subscription.active" -> "pro"
+            "subscription.revoked" -> "free"
+            _ -> {
+              case status {
+                "active" -> "pro"
+                "trialing" -> "pro"
+                _ -> "free"
+              }
+            }
           }
+
+          let _ =
+            subscription_service.upsert_subscription(
+              ctx.db,
+              user_id,
+              customer_id,
+              sub_id,
+              plan,
+              status,
+              "",
+            )
+
+          json.object([#("ok", json.bool(True))])
+          |> json.to_string
+          |> wisp.json_response(200)
         }
       }
+    }
+  }
+}
 
-      let _ =
-        subscription_service.upsert_subscription(
-          ctx.db,
-          external_id,
-          customer_id,
-          sub_id,
-          plan,
-          status,
-          "",
+fn handle_order_event(
+  body: String,
+  event_type: String,
+  ctx: Context,
+) -> wisp.Response {
+  let order_decoder = {
+    use data <- decode.field("data", {
+      use customer <- decode.field("customer", {
+        use customer_id <- decode.field("id", decode.string)
+        use external_id <- decode.field(
+          "external_id",
+          decode.optional(decode.string),
         )
+        use email <- decode.field("email", decode.string)
+        decode.success(#(customer_id, external_id, email))
+      })
+      decode.success(customer)
+    })
+    decode.success(data)
+  }
 
-      json.object([#("ok", json.bool(True))])
+  case json.parse(from: body, using: order_decoder) {
+    Error(_) -> {
+      json.object([#("ok", json.bool(True)), #("skipped", json.bool(True))])
       |> json.to_string
       |> wisp.json_response(200)
+    }
+    Ok(#(customer_id, external_id, email)) -> {
+      case resolve_user_id(ctx, external_id, email) {
+        Error(_) -> {
+          json.object([
+            #("ok", json.bool(True)),
+            #("skipped", json.bool(True)),
+          ])
+          |> json.to_string
+          |> wisp.json_response(200)
+        }
+        Ok(user_id) -> {
+          let plan = case event_type {
+            "order.paid" -> "pro"
+            "order.refunded" -> "free"
+            _ -> "pro"
+          }
+          let status = case event_type {
+            "order.paid" -> "active"
+            "order.refunded" -> "refunded"
+            _ -> "active"
+          }
+
+          let _ =
+            subscription_service.upsert_subscription(
+              ctx.db,
+              user_id,
+              customer_id,
+              "",
+              plan,
+              status,
+              "",
+            )
+
+          json.object([#("ok", json.bool(True))])
+          |> json.to_string
+          |> wisp.json_response(200)
+        }
+      }
+    }
+  }
+}
+
+/// Resolve user_id from external_id (preferred) or email fallback
+fn resolve_user_id(
+  ctx: Context,
+  external_id: option.Option(String),
+  email: String,
+) -> Result(String, Nil) {
+  case external_id {
+    option.Some(id) -> Ok(id)
+    option.None -> {
+      case user_service.get_user_by_email(ctx.db, email) {
+        Ok(user) -> Ok(user.id)
+        Error(_) -> Error(Nil)
+      }
     }
   }
 }
@@ -182,10 +287,11 @@ fn verify_webhook_signature(
     request.get_header(req, "webhook-signature")
   {
     Ok(webhook_id), Ok(timestamp), Ok(signature_header) -> {
-      // Strip "whsec_" prefix and base64-decode the secret
-      let secret_str = case string.starts_with(secret, "whsec_") {
-        True -> string.drop_start(secret, 6)
-        False -> secret
+      // Strip webhook secret prefix and base64-decode the key
+      let secret_str = case secret {
+        "whsec_" <> rest -> rest
+        "polar_whs_" <> rest -> rest
+        _ -> secret
       }
       case bit_array.base64_decode(secret_str) {
         Ok(key) -> {

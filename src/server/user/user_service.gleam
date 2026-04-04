@@ -96,3 +96,21 @@ pub fn get_user_by_id(
     Error(e) -> Error(DatabaseError(e))
   }
 }
+
+pub fn get_user_by_email(
+  db: pog.Connection,
+  email: String,
+) -> Result(User, ServiceError) {
+  case
+    pog.query(
+      "SELECT id, email, password_hash, created_at FROM users WHERE email = $1",
+    )
+    |> pog.parameter(pog.text(email))
+    |> pog.returning(user.db_decoder())
+    |> pog.execute(on: db)
+  {
+    Ok(pog.Returned(_, [found_user, ..])) -> Ok(found_user)
+    Ok(_) -> Error(UserNotFound)
+    Error(e) -> Error(DatabaseError(e))
+  }
+}
