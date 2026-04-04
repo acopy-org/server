@@ -6,6 +6,7 @@ import gleam/otp/actor
 /// Message sent to a WebSocket connection for outbound delivery
 pub type WsOutbound {
   OutboundBroadcast(id: String, content: BitArray, device: String, content_type: String, ts: Int)
+  IntentTimeout
 }
 
 /// Messages handled by the registry actor

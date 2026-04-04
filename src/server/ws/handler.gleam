@@ -1,8 +1,9 @@
 import birl
 import gleam/bit_array
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Subject, type Timer}
 import gleam/http/request
 import gleam/http/response
+import gleam/int
 import gleam/option.{type Option, None, Some}
 import gleam/string
 import mist
@@ -17,6 +18,9 @@ import youid/uuid
 @external(erlang, "io", "format")
 fn erlang_format(msg: String) -> Nil
 
+/// Timeout for copy intent in milliseconds (30 seconds)
+const intent_timeout_ms = 30_000
+
 /// Per-connection WebSocket state
 pub type WsState {
   WsState(
@@ -24,6 +28,10 @@ pub type WsState {
     conn_id: String,
     subject: Subject(WsOutbound),
     ctx: Context,
+    /// Timestamp (unix ms) when client signalled copy intent
+    pending_intent: Option(Int),
+    /// Timer handle for intent timeout, so we can cancel it on push
+    intent_timer: Option(Timer),
   )
 }
 
@@ -54,6 +62,8 @@ fn init(
       conn_id: uuid.v4_string(),
       subject: subject,
       ctx: ctx,
+      pending_intent: None,
+      intent_timer: None,
     )
 
   #(state, Some(selector))

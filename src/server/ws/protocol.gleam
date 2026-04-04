@@ -18,6 +18,8 @@ const msg_ping = 0x06
 
 const msg_pong = 0x07
 
+const msg_copy_intent = 0x08
+
 // Flag bits
 const flag_zstd = 1
 
@@ -29,6 +31,7 @@ pub type WsMsg {
   ErrorMsg(code: Int, msg: String)
   PingMsg
   PongMsg
+  CopyIntentMsg(device: String)
 }
 
 /// Decode a binary WebSocket frame into a protocol message.
@@ -136,6 +139,16 @@ fn decode_payload(msg_type: Int, payload: BitArray) -> Result(WsMsg, String) {
     }
     t if t == msg_ping -> Ok(PingMsg)
     t if t == msg_pong -> Ok(PongMsg)
+    t if t == msg_copy_intent -> {
+      case msgpack.decode(payload) {
+        Ok(#(msgpack.Map(entries), _)) ->
+          case msgpack.get_string(entries, "device") {
+            Ok(device) -> Ok(CopyIntentMsg(device:))
+            Error(_) -> Error("Missing 'device' in CopyIntent message")
+          }
+        _ -> Error("Invalid CopyIntent payload")
+      }
+    }
     _ -> Error("Unknown message type")
   }
 }
@@ -179,6 +192,12 @@ fn encode_payload(msg: WsMsg) -> #(Int, BitArray) {
     )
     PingMsg -> #(msg_ping, <<>>)
     PongMsg -> #(msg_pong, <<>>)
+    CopyIntentMsg(device:) -> #(
+      msg_copy_intent,
+      msgpack.encode(msgpack.Map([
+        #(msgpack.Str("device"), msgpack.Str(device)),
+      ])),
+    )
   }
 }
 
