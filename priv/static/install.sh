@@ -49,5 +49,5 @@ if [ "$OS" != "darwin" ]; then
     esac
 fi
 
-echo "installed. running setup..."
+echo "installed $("${INSTALL_DIR}/${BIN}" version). running setup..."
 "${INSTALL_DIR}/${BIN}" setup
