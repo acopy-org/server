@@ -125,13 +125,6 @@
           html += '<div class="device-item">';
           html += '<span class="device-name" onclick="startRename(\'' + d.id + '\', this)" title="click to rename">' + escHtml(d.device_name) + '</span>';
           html += '<span class="device-meta">';
-          if (plan === 'pro') {
-            html += '<span class="device-config">';
-            html += '<label>img quality</label>';
-            html += '<input type="range" min="10" max="100" step="10" value="' + d.image_compression + '" onchange="updateDeviceConfig(\'' + d.id + '\', this.value)">';
-            html += '<span>' + d.image_compression + '%</span>';
-            html += '</span>';
-          }
           html += '<button class="device-delete" onclick="deleteDevice(\'' + d.id + '\', \'' + escHtml(d.device_name) + '\')">x</button>';
           html += '</span>';
           html += '</div>';
@@ -551,28 +544,6 @@
       });
     }
 
-    function updateDeviceConfig(deviceId, value) {
-      fetch('/api/devices/' + deviceId, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ image_compression: parseInt(value) })
-      }).then(function(r) {
-        if (r.ok) {
-          r.json().then(function(d) {
-            for (var i = 0; i < devices.length; i++) {
-              if (devices[i].id === d.id) {
-                devices[i] = d;
-                break;
-              }
-            }
-            renderEntries();
-          });
-        }
-      });
-    }
 
     function startRename(deviceId, el) {
       var current = el.textContent;
