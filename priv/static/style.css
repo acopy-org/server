@@ -640,3 +640,97 @@ a:hover {
     max-width: 70%;
   }
 }
+
+/* Delete device modal */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #1a1b1e;
+  border: 1px solid #333;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal-title {
+  color: #e0e0dc;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.modal-text {
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.modal-device-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111;
+  border: 1px solid #333;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.modal-device-name code {
+  color: #fff;
+  font-size: 13px;
+  flex: 1;
+}
+
+.modal-input {
+  width: 100%;
+  background: #111;
+  border: 1px solid #333;
+  color: #e0e0dc;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  outline: none;
+}
+
+.modal-input:focus {
+  border-color: #555;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  padding: 6px 16px;
+  border: 1px solid #333;
+  cursor: pointer;
+  background: transparent;
+}
+
+.modal-btn.cancel {
+  color: #999;
+}
+
+.modal-btn.danger {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.modal-btn.danger:disabled {
+  color: #555;
+  border-color: #333;
+  cursor: not-allowed;
+}

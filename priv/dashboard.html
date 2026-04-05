@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>acopy</title>
-  <link rel="stylesheet" href="/static/style.css?v=7">
+  <link rel="stylesheet" href="/static/style.css?v=8">
   <link rel="icon" type="image/png" href="/static/favicon.png">
 </head>
 <body>
@@ -619,15 +619,59 @@
     }
 
     function deleteDevice(deviceId, name) {
-      if (!confirm('Remove device "' + name + '"?')) return;
-      fetch('/api/devices/' + deviceId, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + token }
-      }).then(function(r) {
-        if (r.ok) {
-          devices = devices.filter(function(d) { return d.id !== deviceId; });
-          renderEntries();
-        }
+      // Show modal requiring user to type device name
+      var overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML =
+        '<div class="modal">' +
+          '<p class="modal-title">remove device</p>' +
+          '<p class="modal-text">this will stop the acopy service on the remote device and remove it. type the device name to confirm:</p>' +
+          '<div class="modal-device-name"><code>' + escHtml(name) + '</code><button class="copy-btn" id="modal-copy-btn">' + copySvg + '</button></div>' +
+          '<input type="text" class="modal-input" id="modal-confirm-input" placeholder="type device name here" autocomplete="off">' +
+          '<div class="modal-buttons">' +
+            '<button class="modal-btn cancel" id="modal-cancel">cancel</button>' +
+            '<button class="modal-btn danger" id="modal-delete" disabled>remove</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+
+      var input = document.getElementById('modal-confirm-input');
+      var deleteBtn = document.getElementById('modal-delete');
+      var cancelBtn = document.getElementById('modal-cancel');
+      var copyBtn = document.getElementById('modal-copy-btn');
+
+      input.focus();
+      input.addEventListener('input', function() {
+        deleteBtn.disabled = input.value !== name;
+      });
+
+      copyBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(name).then(function() {
+          copyBtn.innerHTML = checkSvg;
+          setTimeout(function() { copyBtn.innerHTML = copySvg; }, 1500);
+        });
+      });
+
+      cancelBtn.addEventListener('click', function() {
+        document.body.removeChild(overlay);
+      });
+
+      deleteBtn.addEventListener('click', function() {
+        document.body.removeChild(overlay);
+        fetch('/api/devices/' + deviceId, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r) {
+          if (r.ok) {
+            devices = devices.filter(function(d) { return d.id !== deviceId; });
+            renderEntries();
+          }
+        });
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !deleteBtn.disabled) deleteBtn.click();
+        if (e.key === 'Escape') cancelBtn.click();
       });
     }
 
