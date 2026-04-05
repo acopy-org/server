@@ -384,6 +384,10 @@
         var flags = dv.getUint8(2);
         var length = dv.getUint32(3);
 
+        if (msgType === 0x04) { // Ack — refresh devices in case a new device just registered
+          refreshDevices();
+        }
+
         if (msgType === 0x08) { // CopyIntent
           var payloadBuf = buf.slice(7, 7 + length);
           var decoded = decodeMsgpack(payloadBuf, 0);
@@ -486,6 +490,21 @@
         ws.send(buildFrame(0x06, new Uint8Array(0)));
       }
     }, 25000);
+
+    function refreshDevices() {
+      fetch('/api/users/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function(r) {
+        if (!r.ok) return;
+        r.json().then(function(u) {
+          var newDevices = u.devices || [];
+          if (newDevices.length !== devices.length) {
+            devices = newDevices;
+            renderEntries();
+          }
+        });
+      }).catch(function() {});
+    }
 
     function loadDashboard() {
 
